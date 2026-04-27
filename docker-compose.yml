@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:16-alpine
+    platform: linux/amd64
+    container_name: pakfinance_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: portfolio_db
+      POSTGRES_USER: portfolio
+      POSTGRES_PASSWORD: portfolio_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portfolio -d portfolio_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        - BUILDPLATFORM=linux/amd64
+        - TARGETPLATFORM=linux/amd64
+    platform: linux/amd64
+    container_name: pakfinance_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://portfolio:portfolio_password@db:5432/portfolio_db
+      SECRET_KEY: change-this-to-a-strong-random-secret-key-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      REFRESH_TOKEN_EXPIRE_DAYS: 30
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost"]'
+      ENVIRONMENT: production
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    container_name: pakfinance_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
