@@ -15,11 +15,16 @@ class StockInvestmentCreate(BaseModel):
 
 
 class StockInvestmentUpdate(BaseModel):
+    company_name: Optional[str] = None
+    sector: Optional[str] = None
     units: Optional[float] = None
     buy_price: Optional[float] = None
     buy_date: Optional[date] = None
     broker_commission: Optional[float] = None
     notes: Optional[str] = None
+    sell_price: Optional[float] = None
+    sell_date: Optional[date] = None
+    sell_commission: Optional[float] = None
 
 
 class CloseStockRequest(BaseModel):
@@ -33,6 +38,22 @@ class PartialSellStockRequest(BaseModel):
     sell_price: float
     sell_date: date
     sell_commission: float = 0.0
+    notes: Optional[str] = None
+
+
+class StockDividendCreate(BaseModel):
+    shares: float
+    dividend_per_share: float
+    tax_percent: float = 0.0
+    dividend_date: date
+    notes: Optional[str] = None
+
+
+class StockDividendUpdate(BaseModel):
+    shares: Optional[float] = None
+    dividend_per_share: Optional[float] = None
+    tax_percent: Optional[float] = None
+    dividend_date: Optional[date] = None
     notes: Optional[str] = None
 
 
@@ -74,6 +95,22 @@ class StockPriceResponse(BaseModel):
     change_percent: Optional[float]
     volume: Optional[float]
     last_updated: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class StockDividendResponse(BaseModel):
+    id: int
+    symbol: str
+    shares: float
+    dividend_per_share: float
+    tax_percent: float
+    dividend_date: date
+    notes: Optional[str]
+    gross_amount: float
+    tax_amount: float
+    net_amount: float
 
     class Config:
         from_attributes = True

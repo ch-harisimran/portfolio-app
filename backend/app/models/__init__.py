@@ -6,11 +6,12 @@ from .loan import Loan, LoanRepayment
 from .market_data import StockPriceCache, MutualFundNAVCache
 from .auth_device import TrustedDevice, AuthChallenge, WebAuthnCredential, SessionLock
 from .expense import IncomeEntry, ExpenseEntry
+from .stock_dividend import StockDividend
 
 __all__ = [
     "User", "StockInvestment", "MutualFundInvestment",
     "Goal", "GoalContribution", "Loan", "LoanRepayment",
     "StockPriceCache", "MutualFundNAVCache",
     "TrustedDevice", "AuthChallenge", "WebAuthnCredential", "SessionLock",
-    "IncomeEntry", "ExpenseEntry",
+    "IncomeEntry", "ExpenseEntry", "StockDividend",
 ]

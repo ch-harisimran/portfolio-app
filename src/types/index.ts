@@ -35,6 +35,19 @@ export interface StockInvestment {
   realized_pnl?: number;
 }
 
+export interface StockDividend {
+  id: number;
+  symbol: string;
+  shares: number;
+  dividend_per_share: number;
+  tax_percent: number;
+  dividend_date: string;
+  notes?: string;
+  gross_amount: number;
+  tax_amount: number;
+  net_amount: number;
+}
+
 export interface MutualFundInvestment {
   id: number;
   fund_name: string;

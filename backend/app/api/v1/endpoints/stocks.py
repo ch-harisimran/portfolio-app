@@ -5,11 +5,13 @@ from ....core.database import get_db
 from ....core.security import get_current_user
 from ....models.user import User
 from ....models.stock_investment import StockInvestment
+from ....models.stock_dividend import StockDividend
 from ....models.market_data import StockPriceCache
 from ....services.market_data_sync import ensure_stock_data
 from ....schemas.stock import (
     StockInvestmentCreate, StockInvestmentUpdate, StockInvestmentResponse,
-    CloseStockRequest, PartialSellStockRequest, StockPriceResponse
+    CloseStockRequest, PartialSellStockRequest, StockPriceResponse,
+    StockDividendCreate, StockDividendUpdate, StockDividendResponse
 )
 
 router = APIRouter()
@@ -38,6 +40,21 @@ def enrich_stock(inv: StockInvestment, db: Session) -> dict:
     return data
 
 
+def serialize_dividend(row: StockDividend) -> dict:
+    return {
+        "id": row.id,
+        "symbol": row.symbol,
+        "shares": row.shares,
+        "dividend_per_share": row.dividend_per_share,
+        "tax_percent": row.tax_percent,
+        "dividend_date": row.dividend_date,
+        "notes": row.notes,
+        "gross_amount": row.gross_amount,
+        "tax_amount": row.tax_amount,
+        "net_amount": row.net_amount,
+    }
+
+
 @router.get("", response_model=List[StockInvestmentResponse])
 @router.get("/", response_model=List[StockInvestmentResponse], include_in_schema=False)
 async def list_stocks(
@@ -61,6 +78,51 @@ def create_stock(data: StockInvestmentCreate, user: User = Depends(get_current_u
     db.commit()
     db.refresh(inv)
     return enrich_stock(inv, db)
+
+
+@router.get("/dividends", response_model=List[StockDividendResponse])
+def list_dividends(
+    symbol: Optional[str] = Query(None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = db.query(StockDividend).filter(StockDividend.user_id == user.id)
+    if symbol:
+        query = query.filter(StockDividend.symbol == symbol.upper())
+    rows = query.order_by(StockDividend.dividend_date.desc(), StockDividend.id.desc()).all()
+    return [serialize_dividend(row) for row in rows]
+
+
+@router.patch("/dividends/{dividend_id}", response_model=StockDividendResponse)
+def update_dividend(
+    dividend_id: int,
+    data: StockDividendUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    row = db.query(StockDividend).filter(
+        StockDividend.id == dividend_id,
+        StockDividend.user_id == user.id,
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Dividend not found")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(row, field, value)
+    db.commit()
+    db.refresh(row)
+    return serialize_dividend(row)
+
+
+@router.delete("/dividends/{dividend_id}", status_code=204)
+def delete_dividend(dividend_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    row = db.query(StockDividend).filter(
+        StockDividend.id == dividend_id,
+        StockDividend.user_id == user.id,
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Dividend not found")
+    db.delete(row)
+    db.commit()
 
 
 @router.get("/{investment_id}", response_model=StockInvestmentResponse)
@@ -196,6 +258,33 @@ def partial_sell_stock(
         "trades_affected": affected,
     }
 
+
+@router.post("/{investment_id}/dividends", response_model=StockDividendResponse, status_code=201)
+def add_dividend(
+    investment_id: int,
+    data: StockDividendCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    inv = db.query(StockInvestment).filter(
+        StockInvestment.id == investment_id,
+        StockInvestment.user_id == user.id,
+    ).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    row = StockDividend(
+        user_id=user.id,
+        symbol=inv.symbol,
+        shares=data.shares,
+        dividend_per_share=data.dividend_per_share,
+        tax_percent=data.tax_percent,
+        dividend_date=data.dividend_date,
+        notes=data.notes,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return serialize_dividend(row)
 
 @router.delete("/{investment_id}", status_code=204)
 def delete_stock(investment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):

@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, TrendingUp, ArrowUpRight } from "lucide-react";
 import { stocksApi } from "@/lib/api";
 import { formatPKR, formatPercent, formatNumber, cn } from "@/lib/utils";
-import type { StockInvestment, StockSearchResult } from "@/types";
+import type { StockDividend, StockInvestment, StockSearchResult } from "@/types";
 import Modal from "@/components/ui/Modal";
 import ModuleInsights from "@/components/reports/ModuleInsights";
 import toast from "react-hot-toast";
@@ -28,6 +28,9 @@ interface StockHoldingRow {
   pnl_pct: number;
   latest_date: string;
   trade_count: number;
+  dividend_gross: number;
+  dividend_tax: number;
+  dividend_net: number;
 }
 
 const inputCls = "w-full bg-surface border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand focus:shadow-glow-brand-sm transition-all";
@@ -37,6 +40,7 @@ export default function StocksPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [tab, setTab] = useState<"open" | "closed">("open");
   const [loading, setLoading] = useState(true);
+  const [dividends, setDividends] = useState<StockDividend[]>([]);
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
   const [allStockOptions, setAllStockOptions] = useState<StockSearchResult[]>([]);
   const [searchQ, setSearchQ] = useState("");
@@ -46,8 +50,12 @@ export default function StocksPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await stocksApi.list(tab === "closed");
-      setStocks(data);
+      const [stockRes, dividendRes] = await Promise.all([
+        stocksApi.list(tab === "closed"),
+        stocksApi.listDividends(),
+      ]);
+      setStocks(stockRes.data);
+      setDividends(dividendRes.data);
     } catch {
       toast.error("Failed to load stocks");
     } finally {
@@ -109,6 +117,16 @@ export default function StocksPage() {
     }
   };
 
+  const dividendMap = dividends.reduce<Record<string, { gross: number; tax: number; net: number }>>((acc, row) => {
+    const current = acc[row.symbol] || { gross: 0, tax: 0, net: 0 };
+    acc[row.symbol] = {
+      gross: current.gross + row.gross_amount,
+      tax: current.tax + row.tax_amount,
+      net: current.net + row.net_amount,
+    };
+    return acc;
+  }, {});
+
   const groupedStocks = Object.values(
     stocks.reduce<Record<string, StockHoldingRow>>((acc, stock) => {
       const existing = acc[stock.symbol];
@@ -117,6 +135,7 @@ export default function StocksPage() {
       const latestDate = tab === "open" ? stock.buy_date : (stock.sell_date || stock.buy_date);
 
       if (!existing) {
+        const dividendTotals = dividendMap[stock.symbol] || { gross: 0, tax: 0, net: 0 };
         acc[stock.symbol] = {
           id: stock.id,
           symbol: stock.symbol,
@@ -130,6 +149,9 @@ export default function StocksPage() {
           pnl_pct: stock.invested_amount > 0 ? (pnl / stock.invested_amount) * 100 : 0,
           latest_date: latestDate,
           trade_count: 1,
+          dividend_gross: dividendTotals.gross,
+          dividend_tax: dividendTotals.tax,
+          dividend_net: dividendTotals.net,
         };
         return acc;
       }
@@ -150,10 +172,13 @@ export default function StocksPage() {
         pnl_pct: nextInvested > 0 ? (nextPnl / nextInvested) * 100 : 0,
         latest_date: latestDate > existing.latest_date ? latestDate : existing.latest_date,
         trade_count: existing.trade_count + 1,
+        dividend_gross: existing.dividend_gross,
+        dividend_tax: existing.dividend_tax,
+        dividend_net: existing.dividend_net,
       };
       return acc;
     }, {})
-  );
+  ).sort((a, b) => a.symbol.localeCompare(b.symbol));
 
   const totalInvested = groupedStocks.reduce((sum, stock) => sum + stock.invested_amount, 0);
   const totalCurrent = groupedStocks.reduce((sum, stock) => sum + (stock.current_value ?? stock.invested_amount), 0);
@@ -217,7 +242,7 @@ export default function StocksPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-border bg-surface/50">
-                {["Symbol", "Units", "Avg Buy", "Invested", tab === "open" ? "Current" : "Realized Value", "P&L", "Last Activity", ""].map((h) => (
+                {["Symbol", "Units", "Avg Buy", "Invested", tab === "open" ? "Current" : "Realized Value", "P&L", "Dividends", "Last Activity", ""].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-widest">{h}</th>
                 ))}
               </tr>
@@ -251,6 +276,11 @@ export default function StocksPage() {
                         {isProfit ? "+" : ""}{formatPKR(stock.pnl)}
                         <span className="ml-1 opacity-70">({formatPercent(stock.pnl_pct)})</span>
                       </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-xs text-gray-300">
+                      <p>Gross {formatPKR(stock.dividend_gross)}</p>
+                      <p className="text-muted">Tax {formatPKR(stock.dividend_tax)}</p>
+                      <p className="text-muted">Net {formatPKR(stock.dividend_net)}</p>
                     </td>
                     <td className="px-4 py-3.5 text-muted text-xs">{stock.latest_date}</td>
                     <td className="px-4 py-3.5 text-xs text-muted">View history</td>
