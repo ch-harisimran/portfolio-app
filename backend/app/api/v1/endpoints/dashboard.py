@@ -9,6 +9,7 @@ from ....models.mutual_fund import MutualFundInvestment
 from ....models.goal import Goal, GoalContribution
 from ....models.loan import Loan, LoanRepayment
 from ....models.market_data import StockPriceCache, MutualFundNAVCache
+from ....services.market_data_sync import ensure_fund_data, ensure_stock_data
 from ....schemas.dashboard import (
     DashboardSummary, NetWorthItem, AllocationItem,
     PeriodSummaryItem, PeriodSummaryResponse,
@@ -19,7 +20,9 @@ router = APIRouter()
 
 
 @router.get("/summary", response_model=DashboardSummary)
-def get_dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    await ensure_stock_data(db)
+    await ensure_fund_data(db)
     # Active stocks
     active_stocks = db.query(StockInvestment).filter(
         StockInvestment.user_id == user.id, StockInvestment.is_closed == False

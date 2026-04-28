@@ -72,7 +72,7 @@ async def _fetch_live(db: Session) -> None:
         response = await client.get(MUFAP_URL)
         response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, "lxml")
+    soup = BeautifulSoup(response.text, "html.parser")
     table = soup.find("table", {"id": "table-announcement"}) or soup.find("table")
     if not table:
         raise ValueError("NAV table not found on MUFAP page")

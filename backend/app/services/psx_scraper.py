@@ -5,7 +5,7 @@ Fallback: static seed data for offline development.
 """
 import httpx
 import logging
-from lxml import html as lxml_html
+from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 from ..models.market_data import StockPriceCache
 
@@ -180,16 +180,21 @@ def _parse_float(val) -> float | None:
 
 
 def _parse_market_watch_rows(html_text: str) -> list[dict]:
-    doc = lxml_html.fromstring(html_text)
-    rows = doc.xpath("//table[contains(@class, 'tbl')]//tbody/tr")
+    soup = BeautifulSoup(html_text, "html.parser")
+    table = soup.select_one("table.tbl") or soup.find("table")
+    if not table:
+        return []
+
+    body = table.find("tbody") or table
+    rows = body.find_all("tr")
     parsed: list[dict] = []
 
     for row in rows:
-        cols = row.xpath("./td")
+        cols = row.find_all("td")
         if len(cols) < 11:
             continue
 
-        symbol_text = " ".join(cols[0].itertext()).strip()
+        symbol_text = cols[0].get_text(" ", strip=True)
         symbol = (symbol_text.split()[0] if symbol_text else "").upper()
         if not symbol:
             continue
@@ -197,16 +202,16 @@ def _parse_market_watch_rows(html_text: str) -> list[dict]:
         parsed.append(
             {
                 "symbol": symbol,
-                "company_name": " ".join(cols[0].itertext()).strip(),
-                "sector": " ".join(cols[1].itertext()).strip() or None,
-                "prev_close": _parse_float(" ".join(cols[3].itertext()).strip()),
-                "open_price": _parse_float(" ".join(cols[4].itertext()).strip()),
-                "high_price": _parse_float(" ".join(cols[5].itertext()).strip()),
-                "low_price": _parse_float(" ".join(cols[6].itertext()).strip()),
-                "current_price": _parse_float(" ".join(cols[7].itertext()).strip()),
-                "change": _parse_float(" ".join(cols[8].itertext()).strip()),
-                "change_percent": _parse_float(" ".join(cols[9].itertext()).strip()),
-                "volume": _parse_float(" ".join(cols[10].itertext()).strip()),
+                "company_name": cols[0].get_text(" ", strip=True),
+                "sector": cols[1].get_text(" ", strip=True) or None,
+                "prev_close": _parse_float(cols[3].get_text(" ", strip=True)),
+                "open_price": _parse_float(cols[4].get_text(" ", strip=True)),
+                "high_price": _parse_float(cols[5].get_text(" ", strip=True)),
+                "low_price": _parse_float(cols[6].get_text(" ", strip=True)),
+                "current_price": _parse_float(cols[7].get_text(" ", strip=True)),
+                "change": _parse_float(cols[8].get_text(" ", strip=True)),
+                "change_percent": _parse_float(cols[9].get_text(" ", strip=True)),
+                "volume": _parse_float(cols[10].get_text(" ", strip=True)),
             }
         )
 

@@ -6,6 +6,7 @@ from ....core.security import get_current_user
 from ....models.user import User
 from ....models.stock_investment import StockInvestment
 from ....models.market_data import StockPriceCache
+from ....services.market_data_sync import ensure_stock_data
 from ....schemas.stock import (
     StockInvestmentCreate, StockInvestmentUpdate, StockInvestmentResponse,
     CloseStockRequest, StockPriceResponse
@@ -38,11 +39,12 @@ def enrich_stock(inv: StockInvestment, db: Session) -> dict:
 
 
 @router.get("/", response_model=List[StockInvestmentResponse])
-def list_stocks(
+async def list_stocks(
     is_closed: Optional[bool] = Query(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    await ensure_stock_data(db)
     q = db.query(StockInvestment).filter(StockInvestment.user_id == user.id)
     if is_closed is not None:
         q = q.filter(StockInvestment.is_closed == is_closed)
@@ -60,7 +62,8 @@ def create_stock(data: StockInvestmentCreate, user: User = Depends(get_current_u
 
 
 @router.get("/{investment_id}", response_model=StockInvestmentResponse)
-def get_stock(investment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_stock(investment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    await ensure_stock_data(db)
     inv = db.query(StockInvestment).filter(
         StockInvestment.id == investment_id, StockInvestment.user_id == user.id
     ).first()
@@ -119,7 +122,8 @@ def delete_stock(investment_id: int, user: User = Depends(get_current_user), db:
 
 
 @router.get("/search/psx", response_model=List[StockPriceResponse])
-def search_psx_stocks(q: str = Query("", min_length=0), db: Session = Depends(get_db)):
+async def search_psx_stocks(q: str = Query("", min_length=0), db: Session = Depends(get_db)):
+    await ensure_stock_data(db)
     query = db.query(StockPriceCache)
     if q:
         query = query.filter(

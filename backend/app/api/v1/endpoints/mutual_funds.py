@@ -6,6 +6,7 @@ from ....core.security import get_current_user
 from ....models.user import User
 from ....models.mutual_fund import MutualFundInvestment
 from ....models.market_data import MutualFundNAVCache
+from ....services.market_data_sync import ensure_fund_data
 from ....schemas.mutual_fund import (
     MutualFundCreate, MutualFundUpdate, MutualFundResponse,
     CloseMutualFundRequest, MutualFundNAVResponse, ManualFundNAVUpdateRequest
@@ -39,11 +40,12 @@ def enrich_fund(inv: MutualFundInvestment, db: Session) -> dict:
 
 
 @router.get("/", response_model=List[MutualFundResponse])
-def list_funds(
+async def list_funds(
     is_closed: Optional[bool] = Query(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    await ensure_fund_data(db)
     q = db.query(MutualFundInvestment).filter(MutualFundInvestment.user_id == user.id)
     if is_closed is not None:
         q = q.filter(MutualFundInvestment.is_closed == is_closed)
@@ -61,7 +63,8 @@ def create_fund(data: MutualFundCreate, user: User = Depends(get_current_user), 
 
 
 @router.get("/{investment_id}", response_model=MutualFundResponse)
-def get_fund(investment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_fund(investment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    await ensure_fund_data(db)
     inv = db.query(MutualFundInvestment).filter(
         MutualFundInvestment.id == investment_id, MutualFundInvestment.user_id == user.id
     ).first()
@@ -153,7 +156,8 @@ def set_manual_nav(
 
 
 @router.get("/search/mufap", response_model=List[MutualFundNAVResponse])
-def search_funds(q: str = Query("", min_length=0), db: Session = Depends(get_db)):
+async def search_funds(q: str = Query("", min_length=0), db: Session = Depends(get_db)):
+    await ensure_fund_data(db)
     query = db.query(MutualFundNAVCache)
     if q:
         query = query.filter(

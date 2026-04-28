@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 import secrets
@@ -36,6 +36,23 @@ router = APIRouter()
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _resolve_webauthn_context(request: Request) -> tuple[str, str]:
+    forwarded_host = request.headers.get("x-forwarded-host")
+    host_header = forwarded_host or request.headers.get("host") or request.url.netloc
+    host = (host_header or "localhost").split(":")[0]
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme or "https"
+
+    origin = settings.WEBAUTHN_ORIGIN
+    rp_id = settings.WEBAUTHN_RP_ID
+
+    if not origin or origin == "http://localhost:3000":
+        origin = f"{proto}://{host_header or host}"
+    if not rp_id or rp_id == "localhost":
+        rp_id = host
+
+    return rp_id, origin
 
 
 def _upsert_lock(db: Session, user_id: int, device_id: str) -> SessionLock:
@@ -255,7 +272,8 @@ def register_webauthn_credential(data: WebAuthnRegisterRequest, user: User = Dep
 
 
 @router.post("/webauthn/register/options", response_model=WebAuthnRegisterOptionsResponse)
-def webauthn_register_options(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def webauthn_register_options(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    rp_id, _ = _resolve_webauthn_context(request)
     challenge_value = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("=")
     expiry = _utc_now() + timedelta(minutes=5)
     row = AuthChallenge(
@@ -271,7 +289,7 @@ def webauthn_register_options(user: User = Depends(get_current_user), db: Sessio
     return WebAuthnRegisterOptionsResponse(
         challenge_id=row.id,
         challenge=row.challenge,
-        rp_id=settings.WEBAUTHN_RP_ID,
+        rp_id=rp_id,
         rp_name=settings.WEBAUTHN_RP_NAME,
         user_id=str(user.id),
         user_name=user.email,
@@ -280,7 +298,13 @@ def webauthn_register_options(user: User = Depends(get_current_user), db: Sessio
 
 
 @router.post("/webauthn/register/verify")
-def webauthn_register_verify(data: WebAuthnRegisterVerifyRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def webauthn_register_verify(
+    data: WebAuthnRegisterVerifyRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rp_id, origin = _resolve_webauthn_context(request)
     challenge = db.query(AuthChallenge).filter(
         AuthChallenge.id == data.challenge_id,
         AuthChallenge.user_id == user.id,
@@ -296,8 +320,8 @@ def webauthn_register_verify(data: WebAuthnRegisterVerifyRequest, user: User = D
         verification = verify_registration_response(
             credential=RegistrationCredential.model_validate(data.credential),
             expected_challenge=base64.urlsafe_b64decode(challenge.challenge + "==="),
-            expected_rp_id=settings.WEBAUTHN_RP_ID,
-            expected_origin=settings.WEBAUTHN_ORIGIN,
+            expected_rp_id=rp_id,
+            expected_origin=origin,
             require_user_verification=True,
         )
     except Exception as exc:
@@ -325,7 +349,8 @@ def webauthn_register_verify(data: WebAuthnRegisterVerifyRequest, user: User = D
 
 
 @router.post("/webauthn-unlock", response_model=TokenResponse)
-def webauthn_unlock(data: WebAuthnUnlockRequest, db: Session = Depends(get_db)):
+def webauthn_unlock(data: WebAuthnUnlockRequest, request: Request, db: Session = Depends(get_db)):
+    rp_id, origin = _resolve_webauthn_context(request)
     user = db.query(User).filter(User.email == data.email).first()
     if not user:
         raise HTTPException(status_code=401, detail="Invalid user")
@@ -360,8 +385,8 @@ def webauthn_unlock(data: WebAuthnUnlockRequest, db: Session = Depends(get_db)):
                 "type": "public-key",
             }),
             expected_challenge=base64.urlsafe_b64decode(challenge.challenge + "==="),
-            expected_rp_id=settings.WEBAUTHN_RP_ID,
-            expected_origin=settings.WEBAUTHN_ORIGIN,
+            expected_rp_id=rp_id,
+            expected_origin=origin,
             credential_public_key=base64.urlsafe_b64decode(credential.public_key + "==="),
             credential_current_sign_count=credential.counter or 0,
             require_user_verification=True,
