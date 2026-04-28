@@ -20,10 +20,11 @@ def _is_stale(last_updated: datetime | None, max_age: timedelta) -> bool:
     return _utc_now() - last_updated >= max_age
 
 
-async def ensure_stock_data(db: Session, max_age_minutes: int = 30) -> None:
+async def ensure_stock_data(db: Session, max_age_minutes: int = 30, refresh_stale: bool = False) -> None:
     last_updated = db.query(func.max(StockPriceCache.last_updated)).scalar()
     has_rows = db.query(StockPriceCache.id).first() is not None
-    if not has_rows or _is_stale(last_updated, timedelta(minutes=max_age_minutes)):
+    should_refresh = not has_rows or (refresh_stale and _is_stale(last_updated, timedelta(minutes=max_age_minutes)))
+    if should_refresh:
         await fetch_psx_data(db)
 
 

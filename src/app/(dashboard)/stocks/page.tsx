@@ -46,6 +46,7 @@ export default function StocksPage() {
     try {
       const { data } = await stocksApi.search("");
       setAllStockOptions(data);
+      setSearchResults(data.slice(0, 12));
     } catch { setAllStockOptions([]); }
   }, []);
 
@@ -76,7 +77,7 @@ export default function StocksPage() {
     try {
       await stocksApi.create(data);
       toast.success("Investment added");
-      setShowAdd(false); addForm.reset(); setSearchQ(""); load();
+      setShowAdd(false); addForm.reset(); setSearchQ(""); setSearchResults([]); load();
     } catch { toast.error("Failed to add investment"); }
   };
 
@@ -216,12 +217,12 @@ export default function StocksPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Stock Symbol</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input value={searchQ} onChange={(e) => onSearch(e.target.value)}
+              <input value={searchQ} onFocus={() => onSearch(searchQ)} onChange={(e) => onSearch(e.target.value)}
                 className="w-full bg-surface border border-surface-border rounded-xl pl-9 pr-4 py-2.5 text-white text-sm placeholder-muted focus:outline-none focus:border-brand focus:shadow-glow-brand-sm transition-all"
                 placeholder="Search PSX symbol (e.g. OGDC)" />
             </div>
             {searchResults.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-surface-card border border-surface-border rounded-xl shadow-xl overflow-hidden">
+              <div className="absolute z-10 w-full mt-1 bg-surface-card border border-surface-border rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
                 {searchResults.map((s) => (
                   <button key={s.symbol} type="button" onClick={() => selectStock(s)}
                     className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-surface-elevated text-left transition-colors">

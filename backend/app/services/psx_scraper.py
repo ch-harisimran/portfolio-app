@@ -65,17 +65,22 @@ async def fetch_psx_data(db: Session) -> None:
 
 
 async def _fetch_live(db: Session) -> None:
-    async with httpx.AsyncClient(timeout=30, headers=HEADERS) as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=5.0), headers=HEADERS) as client:
         symbols_res = await client.get(PSX_SYMBOLS_URL)
         symbols_res.raise_for_status()
         symbols_data = symbols_res.json()
 
-        watch_res = await client.get(PSX_MARKET_WATCH_URL)
-        watch_res.raise_for_status()
-        market_rows = _parse_market_watch_rows(watch_res.text)
-
     if not isinstance(symbols_data, list):
         raise ValueError("Unexpected PSX symbols response format")
+
+    market_rows: list[dict] = []
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=5.0), headers=HEADERS) as client:
+            watch_res = await client.get(PSX_MARKET_WATCH_URL)
+            watch_res.raise_for_status()
+            market_rows = _parse_market_watch_rows(watch_res.text)
+    except Exception as exc:
+        logger.warning(f"PSX market watch fetch failed ({exc}), continuing with symbols data only")
 
     symbols_map: dict[str, dict] = {}
     for item in symbols_data:
@@ -117,14 +122,22 @@ async def _fetch_live(db: Session) -> None:
         if cache:
             cache.company_name = company_name
             cache.sector = sector
-            cache.current_price = current_price
-            cache.open_price = open_price
-            cache.high_price = high_price
-            cache.low_price = low_price
-            cache.prev_close = prev_close
-            cache.change = change
-            cache.change_percent = change_pct
-            cache.volume = volume
+            if current_price is not None:
+                cache.current_price = current_price
+            if open_price is not None:
+                cache.open_price = open_price
+            if high_price is not None:
+                cache.high_price = high_price
+            if low_price is not None:
+                cache.low_price = low_price
+            if prev_close is not None:
+                cache.prev_close = prev_close
+            if change is not None:
+                cache.change = change
+            if change_pct is not None:
+                cache.change_percent = change_pct
+            if volume is not None:
+                cache.volume = volume
         else:
             db.add(
                 StockPriceCache(
@@ -141,6 +154,10 @@ async def _fetch_live(db: Session) -> None:
                     volume=volume,
                 )
             )
+    if not db.query(StockPriceCache.id).first():
+        _seed_data(db)
+        return
+
     db.commit()
     logger.info(f"PSX data updated: {len(universe)} symbols")
 
