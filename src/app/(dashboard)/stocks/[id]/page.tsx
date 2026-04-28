@@ -65,9 +65,7 @@ export default function StockDetailPage() {
   const totalUnrealized = totalCurrent - totalInvested;
   const totalUnrealizedPct = totalInvested > 0 ? (totalUnrealized / totalInvested) * 100 : 0;
   const totalRealized = history.filter((trade) => trade.is_closed).reduce((sum, trade) => sum + (trade.realized_pnl ?? 0), 0);
-  const avgBuyPrice = totalUnits > 0
-    ? openTrades.reduce((sum, trade) => sum + (trade.buy_price * trade.units), 0) / totalUnits
-    : stock.buy_price;
+  const avgBuyPrice = totalUnits > 0 ? totalInvested / totalUnits : stock.buy_price;
   const chartData = history
     .slice()
     .sort((a, b) => a.buy_date.localeCompare(b.buy_date))

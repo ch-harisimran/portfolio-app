@@ -122,7 +122,7 @@ export default function StocksPage() {
           symbol: stock.symbol,
           company_name: stock.company_name,
           units: stock.units,
-          avg_buy_price: stock.buy_price,
+          avg_buy_price: stock.units > 0 ? stock.invested_amount / stock.units : stock.buy_price,
           invested_amount: stock.invested_amount,
           current_price: stock.current_price,
           current_value: currentValue,
@@ -142,9 +142,7 @@ export default function StocksPage() {
         ...existing,
         company_name: existing.company_name || stock.company_name,
         units: nextUnits,
-        avg_buy_price: nextUnits > 0
-          ? ((existing.avg_buy_price * existing.units) + (stock.buy_price * stock.units)) / nextUnits
-          : stock.buy_price,
+        avg_buy_price: nextUnits > 0 ? nextInvested / nextUnits : stock.buy_price,
         invested_amount: nextInvested,
         current_price: stock.current_price ?? existing.current_price,
         current_value: (existing.current_value ?? existing.invested_amount) + currentValue,
