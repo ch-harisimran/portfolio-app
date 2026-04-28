@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, TrendingUp, ArrowUpRight } from "lucide-react";
-import { settingsApi, stocksApi } from "@/lib/api";
+import { stocksApi } from "@/lib/api";
 import { formatPKR, formatPercent, formatNumber, cn } from "@/lib/utils";
 import type { StockInvestment, StockSearchResult } from "@/types";
 import Modal from "@/components/ui/Modal";
@@ -49,15 +49,10 @@ export default function StocksPage() {
     } catch { setAllStockOptions([]); }
   }, []);
 
-  useEffect(() => { loadStockOptions(); }, [loadStockOptions]);
-
   useEffect(() => {
-    const refresh = async () => {
-      try { await settingsApi.refreshPSX(); } catch { /* ignore */ }
-      finally { load(); loadStockOptions(); }
-    };
-    refresh();
-  }, [load, loadStockOptions]);
+    if (!showAdd || allStockOptions.length > 0) return;
+    loadStockOptions();
+  }, [showAdd, allStockOptions.length, loadStockOptions]);
 
   const onSearch = (q: string) => {
     setSearchQ(q);
