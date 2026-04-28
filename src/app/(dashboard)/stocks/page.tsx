@@ -14,14 +14,27 @@ interface AddForm {
   symbol: string; company_name: string; units: number;
   buy_price: number; buy_date: string; broker_commission: number; notes: string;
 }
-interface CloseForm { sell_price: number; sell_date: string; sell_commission: number; }
+
+interface StockHoldingRow {
+  id: number;
+  symbol: string;
+  company_name?: string;
+  units: number;
+  avg_buy_price: number;
+  invested_amount: number;
+  current_price?: number;
+  current_value?: number;
+  pnl: number;
+  pnl_pct: number;
+  latest_date: string;
+  trade_count: number;
+}
 
 const inputCls = "w-full bg-surface border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand focus:shadow-glow-brand-sm transition-all";
 
 export default function StocksPage() {
   const [stocks, setStocks] = useState<StockInvestment[]>([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [closing, setClosing] = useState<StockInvestment | null>(null);
   const [tab, setTab] = useState<"open" | "closed">("open");
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
@@ -29,15 +42,17 @@ export default function StocksPage() {
   const [searchQ, setSearchQ] = useState("");
 
   const addForm = useForm<AddForm>({ defaultValues: { broker_commission: 0 } });
-  const closeForm = useForm<CloseForm>({ defaultValues: { sell_commission: 0 } });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await stocksApi.list(tab === "closed");
       setStocks(data);
-    } catch { toast.error("Failed to load stocks"); }
-    finally { setLoading(false); }
+    } catch {
+      toast.error("Failed to load stocks");
+    } finally {
+      setLoading(false);
+    }
   }, [tab]);
 
   useEffect(() => { load(); }, [load]);
@@ -47,7 +62,9 @@ export default function StocksPage() {
       const { data } = await stocksApi.search("");
       setAllStockOptions(data);
       setSearchResults(data.slice(0, 12));
-    } catch { setAllStockOptions([]); }
+    } catch {
+      setAllStockOptions([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -58,11 +75,16 @@ export default function StocksPage() {
   const onSearch = (q: string) => {
     setSearchQ(q);
     addForm.setValue("symbol", q.toUpperCase());
-    if (q.length < 1) { setSearchResults(allStockOptions.slice(0, 12)); return; }
+    if (q.length < 1) {
+      setSearchResults(allStockOptions.slice(0, 12));
+      return;
+    }
     const qq = q.toLowerCase();
-    setSearchResults(allStockOptions.filter((s) =>
-      s.symbol.toLowerCase().includes(qq) || (s.company_name || "").toLowerCase().includes(qq)
-    ).slice(0, 20));
+    setSearchResults(
+      allStockOptions.filter((s) =>
+        s.symbol.toLowerCase().includes(qq) || (s.company_name || "").toLowerCase().includes(qq)
+      ).slice(0, 20)
+    );
   };
 
   const selectStock = (s: StockSearchResult) => {
@@ -77,33 +99,71 @@ export default function StocksPage() {
     try {
       await stocksApi.create(data);
       toast.success("Investment added");
-      setShowAdd(false); addForm.reset(); setSearchQ(""); setSearchResults([]); load();
-    } catch { toast.error("Failed to add investment"); }
+      setShowAdd(false);
+      addForm.reset({ broker_commission: 0 });
+      setSearchQ("");
+      setSearchResults([]);
+      load();
+    } catch {
+      toast.error("Failed to add investment");
+    }
   };
 
-  const onClose = async (data: CloseForm) => {
-    if (!closing) return;
-    try {
-      await stocksApi.close(closing.id, data);
-      toast.success("Trade closed");
-      setClosing(null); closeForm.reset(); load();
-    } catch { toast.error("Failed to close trade"); }
-  };
+  const groupedStocks = Object.values(
+    stocks.reduce<Record<string, StockHoldingRow>>((acc, stock) => {
+      const existing = acc[stock.symbol];
+      const currentValue = stock.current_value ?? stock.invested_amount;
+      const pnl = tab === "open" ? (stock.unrealized_pnl ?? 0) : (stock.realized_pnl ?? 0);
+      const latestDate = tab === "open" ? stock.buy_date : (stock.sell_date || stock.buy_date);
 
-  const onDelete = async (id: number) => {
-    if (!confirm("Delete this investment?")) return;
-    try { await stocksApi.delete(id); toast.success("Deleted"); load(); }
-    catch { toast.error("Delete failed"); }
-  };
+      if (!existing) {
+        acc[stock.symbol] = {
+          id: stock.id,
+          symbol: stock.symbol,
+          company_name: stock.company_name,
+          units: stock.units,
+          avg_buy_price: stock.buy_price,
+          invested_amount: stock.invested_amount,
+          current_price: stock.current_price,
+          current_value: currentValue,
+          pnl,
+          pnl_pct: stock.invested_amount > 0 ? (pnl / stock.invested_amount) * 100 : 0,
+          latest_date: latestDate,
+          trade_count: 1,
+        };
+        return acc;
+      }
 
-  const totalInvested = stocks.reduce((a, s) => a + s.invested_amount, 0);
-  const totalCurrent = stocks.reduce((a, s) => a + (s.current_value ?? s.invested_amount), 0);
-  const totalPnl = totalCurrent - totalInvested;
+      const nextUnits = existing.units + stock.units;
+      const nextInvested = existing.invested_amount + stock.invested_amount;
+      const nextPnl = existing.pnl + pnl;
+
+      acc[stock.symbol] = {
+        ...existing,
+        company_name: existing.company_name || stock.company_name,
+        units: nextUnits,
+        avg_buy_price: nextUnits > 0
+          ? ((existing.avg_buy_price * existing.units) + (stock.buy_price * stock.units)) / nextUnits
+          : stock.buy_price,
+        invested_amount: nextInvested,
+        current_price: stock.current_price ?? existing.current_price,
+        current_value: (existing.current_value ?? existing.invested_amount) + currentValue,
+        pnl: nextPnl,
+        pnl_pct: nextInvested > 0 ? (nextPnl / nextInvested) * 100 : 0,
+        latest_date: latestDate > existing.latest_date ? latestDate : existing.latest_date,
+        trade_count: existing.trade_count + 1,
+      };
+      return acc;
+    }, {})
+  );
+
+  const totalInvested = groupedStocks.reduce((sum, stock) => sum + stock.invested_amount, 0);
+  const totalCurrent = groupedStocks.reduce((sum, stock) => sum + (stock.current_value ?? stock.invested_amount), 0);
+  const totalPnl = groupedStocks.reduce((sum, stock) => sum + stock.pnl, 0);
   const pnlPct = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
 
   return (
     <div className="space-y-5 max-w-6xl animate-fade-up">
-      {/* Summary strip */}
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Invested", val: formatPKR(totalInvested), color: "text-white" },
@@ -121,20 +181,25 @@ export default function StocksPage() {
 
       <ModuleInsights moduleKey="stocks" />
 
-      {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex gap-1 bg-surface-card border border-surface-border rounded-xl p-1">
           {(["open", "closed"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={cn("px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize",
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize",
                 tab === t ? "bg-gradient-brand text-white shadow-glow-brand-sm" : "text-muted hover:text-white"
-              )}>
+              )}
+            >
               {t}
             </button>
           ))}
         </div>
-        <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all">
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all"
+        >
           <Plus className="w-4 h-4" /> Add Stock
         </button>
       </div>
@@ -143,7 +208,7 @@ export default function StocksPage() {
         <div className="flex justify-center py-16">
           <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : stocks.length === 0 ? (
+      ) : groupedStocks.length === 0 ? (
         <div className="text-center py-20 text-muted bg-surface-card border border-surface-border rounded-2xl">
           <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-20" />
           <p className="text-sm">No {tab} stock investments yet</p>
@@ -154,54 +219,43 @@ export default function StocksPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-border bg-surface/50">
-                {["Symbol", "Units", "Buy Price", "Invested", tab === "open" ? "Current" : "Sold At", "P&L", "Date", ""].map((h) => (
+                {["Symbol", "Units", "Avg Buy", "Invested", tab === "open" ? "Current" : "Realized Value", "P&L", "Last Activity", ""].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-[10px] font-semibold text-muted uppercase tracking-widest">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
-              {stocks.map((s) => {
-                const pnl = tab === "open" ? (s.unrealized_pnl ?? 0) : (s.realized_pnl ?? 0);
-                const isProfit = pnl >= 0;
+              {groupedStocks.map((stock) => {
+                const isProfit = stock.pnl >= 0;
                 return (
-                  <tr key={s.id} className="hover:bg-surface-elevated/30 transition-colors group">
+                  <tr key={`${tab}-${stock.symbol}`} className="hover:bg-surface-elevated/30 transition-colors group">
                     <td className="px-4 py-3.5">
-                      <Link href={`/stocks/${s.id}`} className="flex items-center gap-1 group/link">
+                      <Link href={`/stocks/${stock.id}`} className="flex items-center gap-1 group/link">
                         <div>
                           <p className="font-bold text-white group-hover/link:text-brand transition-colors flex items-center gap-1">
-                            {s.symbol}
+                            {stock.symbol}
                             <ArrowUpRight className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />
                           </p>
-                          <p className="text-[10px] text-muted">{s.company_name}</p>
+                          <p className="text-[10px] text-muted">{stock.company_name} · {stock.trade_count} trade{stock.trade_count > 1 ? "s" : ""}</p>
                         </div>
                       </Link>
                     </td>
-                    <td className="px-4 py-3.5 text-gray-300 font-medium">{formatNumber(s.units, 0)}</td>
-                    <td className="px-4 py-3.5 text-gray-300">₨{formatNumber(s.buy_price)}</td>
-                    <td className="px-4 py-3.5 text-gray-300">{formatPKR(s.invested_amount)}</td>
+                    <td className="px-4 py-3.5 text-gray-300 font-medium">{formatNumber(stock.units, 0)}</td>
+                    <td className="px-4 py-3.5 text-gray-300">Rs {formatNumber(stock.avg_buy_price)}</td>
+                    <td className="px-4 py-3.5 text-gray-300">{formatPKR(stock.invested_amount)}</td>
                     <td className="px-4 py-3.5 text-gray-300">
-                      {tab === "open" ? (s.current_price ? `₨${formatNumber(s.current_price)}` : "—") : `₨${formatNumber(s.sell_price ?? 0)}`}
+                      {tab === "open"
+                        ? (stock.current_price ? `Rs ${formatNumber(stock.current_price)}` : "-")
+                        : formatPKR(stock.current_value ?? stock.invested_amount)}
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={cn("text-xs px-2.5 py-1 rounded-full font-semibold", isProfit ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss")}>
-                        {isProfit ? "+" : ""}{formatPKR(pnl)}
-                        {tab === "open" && s.unrealized_pnl_pct !== undefined && (
-                          <span className="ml-1 opacity-70">({formatPercent(s.unrealized_pnl_pct)})</span>
-                        )}
+                        {isProfit ? "+" : ""}{formatPKR(stock.pnl)}
+                        <span className="ml-1 opacity-70">({formatPercent(stock.pnl_pct)})</span>
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-muted text-xs">{tab === "open" ? s.buy_date : s.sell_date}</td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {tab === "open" && (
-                          <button onClick={() => { setClosing(s); closeForm.setValue("sell_date", new Date().toISOString().slice(0, 10)); }}
-                            className="px-2.5 py-1 text-xs bg-brand/10 text-brand hover:bg-brand/20 rounded-lg transition-colors font-medium">
-                            Close
-                          </button>
-                        )}
-                        <button onClick={() => onDelete(s.id)} className="px-2.5 py-1 text-xs bg-loss/10 text-loss hover:bg-loss/20 rounded-lg transition-colors font-medium">Del</button>
-                      </div>
-                    </td>
+                    <td className="px-4 py-3.5 text-muted text-xs">{stock.latest_date}</td>
+                    <td className="px-4 py-3.5 text-xs text-muted">View history</td>
                   </tr>
                 );
               })}
@@ -210,27 +264,34 @@ export default function StocksPage() {
         </div>
       )}
 
-      {/* Add Modal */}
-      <Modal open={showAdd} onClose={() => { setShowAdd(false); addForm.reset(); setSearchQ(""); setSearchResults([]); }} title="Add Stock Investment">
+      <Modal open={showAdd} onClose={() => { setShowAdd(false); addForm.reset({ broker_commission: 0 }); setSearchQ(""); setSearchResults([]); }} title="Add Stock Investment">
         <form onSubmit={addForm.handleSubmit(onAdd)} className="space-y-4">
           <div className="relative">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Stock Symbol</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input value={searchQ} onFocus={() => onSearch(searchQ)} onChange={(e) => onSearch(e.target.value)}
+              <input
+                value={searchQ}
+                onFocus={() => onSearch(searchQ)}
+                onChange={(e) => onSearch(e.target.value)}
                 className="w-full bg-surface border border-surface-border rounded-xl pl-9 pr-4 py-2.5 text-white text-sm placeholder-muted focus:outline-none focus:border-brand focus:shadow-glow-brand-sm transition-all"
-                placeholder="Search PSX symbol (e.g. OGDC)" />
+                placeholder="Search PSX symbol (e.g. OGDC)"
+              />
             </div>
             {searchResults.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-surface-card border border-surface-border rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                {searchResults.map((s) => (
-                  <button key={s.symbol} type="button" onClick={() => selectStock(s)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-surface-elevated text-left transition-colors">
+                {searchResults.map((stock) => (
+                  <button
+                    key={stock.symbol}
+                    type="button"
+                    onClick={() => selectStock(stock)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-surface-elevated text-left transition-colors"
+                  >
                     <span>
-                      <span className="font-bold text-white text-sm">{s.symbol}</span>
-                      <span className="text-muted text-xs ml-2">{s.company_name}</span>
+                      <span className="font-bold text-white text-sm">{stock.symbol}</span>
+                      <span className="text-muted text-xs ml-2">{stock.company_name}</span>
                     </span>
-                    {s.current_price && <span className="text-xs text-gray-300">₨{formatNumber(s.current_price)}</span>}
+                    {stock.current_price && <span className="text-xs text-gray-300">Rs {formatNumber(stock.current_price)}</span>}
                   </button>
                 ))}
               </div>
@@ -243,18 +304,17 @@ export default function StocksPage() {
               <input type="number" step="1" {...addForm.register("units", { required: true, min: 1 })} className={inputCls} placeholder="100" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Buy Price (₨)</label>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Buy Price (Rs)</label>
               <input type="number" step="0.01" {...addForm.register("buy_price", { required: true, min: 0.01 })} className={inputCls} placeholder="0.00" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Buy Date</label>
-              <input type="date" {...addForm.register("buy_date", { required: true })}
-                defaultValue={new Date().toISOString().slice(0, 10)} className={inputCls} />
+              <input type="date" {...addForm.register("buy_date", { required: true })} defaultValue={new Date().toISOString().slice(0, 10)} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Commission (₨)</label>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Commission (Rs)</label>
               <input type="number" step="0.01" {...addForm.register("broker_commission")} className={inputCls} placeholder="0.00" />
             </div>
           </div>
@@ -263,32 +323,8 @@ export default function StocksPage() {
             <textarea {...addForm.register("notes")} rows={2} className={inputCls + " resize-none"} />
           </div>
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => { setShowAdd(false); addForm.reset(); }}
-              className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
+            <button type="button" onClick={() => { setShowAdd(false); addForm.reset({ broker_commission: 0 }); }} className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-brand hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-brand-sm transition-all">Add Investment</button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Close Modal */}
-      <Modal open={!!closing} onClose={() => setClosing(null)} title={`Close ${closing?.symbol}`} size="sm">
-        <form onSubmit={closeForm.handleSubmit(onClose)} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Sell Price (₨)</label>
-            <input type="number" step="0.01" {...closeForm.register("sell_price", { required: true, min: 0.01 })} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Sell Date</label>
-            <input type="date" {...closeForm.register("sell_date", { required: true })} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Commission (₨)</label>
-            <input type="number" step="0.01" {...closeForm.register("sell_commission")} className={inputCls} />
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => setClosing(null)}
-              className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
-            <button type="submit" className="flex-1 bg-gradient-profit hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-profit transition-all">Close Trade</button>
           </div>
         </form>
       </Modal>
