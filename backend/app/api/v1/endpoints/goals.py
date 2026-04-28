@@ -27,13 +27,15 @@ def enrich_goal(goal: Goal) -> dict:
     }
 
 
-@router.get("/", response_model=List[GoalResponse])
+@router.get("", response_model=List[GoalResponse])
+@router.get("/", response_model=List[GoalResponse], include_in_schema=False)
 def list_goals(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     goals = db.query(Goal).filter(Goal.user_id == user.id).order_by(Goal.created_at.desc()).all()
     return [enrich_goal(g) for g in goals]
 
 
-@router.post("/", response_model=GoalResponse, status_code=201)
+@router.post("", response_model=GoalResponse, status_code=201)
+@router.post("/", response_model=GoalResponse, status_code=201, include_in_schema=False)
 def create_goal(data: GoalCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     goal = Goal(**data.model_dump(), user_id=user.id)
     db.add(goal)

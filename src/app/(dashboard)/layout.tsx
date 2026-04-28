@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { authApi } from "@/lib/api";
-import { getOrCreateDeviceId, getUser, isAuthenticated, isPinUnlocked, isRememberMeEnabled, setPinUnlocked } from "@/lib/auth";
+import { clearTokens, getOrCreateDeviceId, getUser, isAuthenticated, isPinUnlocked, isRememberMeEnabled, saveUser, setPinUnlocked } from "@/lib/auth";
 
 const titles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -36,6 +36,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace("/unlock");
     }
   }, [router, pathname]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    let cancelled = false;
+
+    const validateSession = async () => {
+      try {
+        const { data } = await authApi.me();
+        if (!cancelled) saveUser(data);
+      } catch {
+        if (cancelled) return;
+        clearTokens();
+        router.replace("/login");
+      }
+    };
+
+    void validateSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
     if (!isRememberMeEnabled()) return;

@@ -16,7 +16,8 @@ class UpdateSettingsRequest(BaseModel):
     currency: Optional[str] = None
 
 
-@router.patch("/", response_model=UserResponse)
+@router.patch("", response_model=UserResponse)
+@router.patch("/", response_model=UserResponse, include_in_schema=False)
 def update_settings(
     data: UpdateSettingsRequest,
     user: User = Depends(get_current_user),

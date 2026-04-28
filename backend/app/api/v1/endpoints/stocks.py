@@ -38,7 +38,8 @@ def enrich_stock(inv: StockInvestment, db: Session) -> dict:
     return data
 
 
-@router.get("/", response_model=List[StockInvestmentResponse])
+@router.get("", response_model=List[StockInvestmentResponse])
+@router.get("/", response_model=List[StockInvestmentResponse], include_in_schema=False)
 async def list_stocks(
     is_closed: Optional[bool] = Query(None),
     user: User = Depends(get_current_user),
@@ -52,7 +53,8 @@ async def list_stocks(
     return [enrich_stock(inv, db) for inv in investments]
 
 
-@router.post("/", response_model=StockInvestmentResponse, status_code=201)
+@router.post("", response_model=StockInvestmentResponse, status_code=201)
+@router.post("/", response_model=StockInvestmentResponse, status_code=201, include_in_schema=False)
 def create_stock(data: StockInvestmentCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     inv = StockInvestment(**data.model_dump(), user_id=user.id)
     db.add(inv)

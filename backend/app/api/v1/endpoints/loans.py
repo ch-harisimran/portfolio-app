@@ -28,13 +28,15 @@ def enrich_loan(loan: Loan) -> dict:
     }
 
 
-@router.get("/", response_model=List[LoanResponse])
+@router.get("", response_model=List[LoanResponse])
+@router.get("/", response_model=List[LoanResponse], include_in_schema=False)
 def list_loans(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     loans = db.query(Loan).filter(Loan.user_id == user.id).order_by(Loan.start_date.desc()).all()
     return [enrich_loan(l) for l in loans]
 
 
-@router.post("/", response_model=LoanResponse, status_code=201)
+@router.post("", response_model=LoanResponse, status_code=201)
+@router.post("/", response_model=LoanResponse, status_code=201, include_in_schema=False)
 def create_loan(data: LoanCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     loan = Loan(**data.model_dump(), user_id=user.id)
     db.add(loan)
