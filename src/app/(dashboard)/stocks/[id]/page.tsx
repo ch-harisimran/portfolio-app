@@ -2,11 +2,21 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { stocksApi } from "@/lib/api";
 import { formatPKR, formatNumber, formatPercent, pnlColor, cn } from "@/lib/utils";
 import PortfolioChart from "@/components/charts/PortfolioChart";
+import Modal from "@/components/ui/Modal";
 import type { StockInvestment } from "@/types";
 import toast from "react-hot-toast";
+
+interface SellForm {
+  units: number;
+  sell_price: number;
+  sell_date: string;
+  sell_commission: number;
+  notes: string;
+}
 
 export default function StockDetailPage() {
   const { id } = useParams();
@@ -14,25 +24,34 @@ export default function StockDetailPage() {
   const [stock, setStock] = useState<StockInvestment | null>(null);
   const [history, setHistory] = useState<StockInvestment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSell, setShowSell] = useState(false);
+  const sellForm = useForm<SellForm>({
+    defaultValues: {
+      sell_commission: 0,
+      sell_date: new Date().toISOString().slice(0, 10),
+      notes: "",
+    },
+  });
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data } = await stocksApi.get(Number(id));
+      setStock(data);
+      const [openTrades, closedTrades] = await Promise.all([stocksApi.list(false), stocksApi.list(true)]);
+      setHistory(
+        [...openTrades.data, ...closedTrades.data]
+          .filter((trade) => trade.symbol === data.symbol)
+          .sort((a, b) => (b.sell_date || b.buy_date).localeCompare(a.sell_date || a.buy_date))
+      );
+    } catch {
+      toast.error("Not found");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const { data } = await stocksApi.get(Number(id));
-        setStock(data);
-        const [openTrades, closedTrades] = await Promise.all([stocksApi.list(false), stocksApi.list(true)]);
-        setHistory(
-          [...openTrades.data, ...closedTrades.data]
-            .filter((trade) => trade.symbol === data.symbol)
-            .sort((a, b) => (b.sell_date || b.buy_date).localeCompare(a.sell_date || a.buy_date))
-        );
-      } catch {
-        toast.error("Not found");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     void load();
   }, [id]);
 
@@ -58,6 +77,22 @@ export default function StockDetailPage() {
       current: rows.slice(0, index + 1).reduce((sum, row) => sum + (row.current_value ?? row.invested_amount), 0),
     }));
 
+  const onSell = async (data: SellForm) => {
+    try {
+      await stocksApi.sell(Number(id), data);
+      toast.success(`Sold ${data.units} shares`);
+      setShowSell(false);
+      sellForm.reset({
+        sell_commission: 0,
+        sell_date: new Date().toISOString().slice(0, 10),
+        notes: "",
+      });
+      await load();
+    } catch {
+      toast.error("Failed to sell shares");
+    }
+  };
+
   return (
     <div className="max-w-5xl space-y-6">
       <button onClick={() => router.back()} className="flex items-center gap-2 text-muted hover:text-white transition-colors text-sm">
@@ -82,6 +117,23 @@ export default function StockDetailPage() {
             <p className={cn("text-sm font-medium mt-0.5", pnlColor(totalUnrealized))}>
               {totalUnrealized >= 0 ? "+" : ""}{formatPKR(totalUnrealized)} ({formatPercent(totalUnrealizedPct)})
             </p>
+            {totalUnits > 0 && (
+              <button
+                onClick={() => {
+                  sellForm.reset({
+                    units: Math.min(totalUnits, 1),
+                    sell_price: stock.current_price || avgBuyPrice,
+                    sell_date: new Date().toISOString().slice(0, 10),
+                    sell_commission: 0,
+                    notes: "",
+                  });
+                  setShowSell(true);
+                }}
+                className="mt-3 bg-gradient-profit hover:opacity-90 text-white rounded-lg px-4 py-2 text-sm font-semibold transition-all"
+              >
+                Sell Shares
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -137,7 +189,7 @@ export default function StockDetailPage() {
                       </span>
                     </td>
                     <td className={cn("px-3 py-3", pnlColor(tradePnl))}>{tradePnl >= 0 ? "+" : ""}{formatPKR(tradePnl)}</td>
-                    <td className="px-3 py-3 text-muted">{trade.notes || "—"}</td>
+                    <td className="px-3 py-3 text-muted">{trade.notes || "-"}</td>
                   </tr>
                 );
               })}
@@ -145,6 +197,36 @@ export default function StockDetailPage() {
           </table>
         </div>
       </div>
+
+      <Modal open={showSell} onClose={() => setShowSell(false)} title={`Sell ${stock.symbol}`} size="sm">
+        <form onSubmit={sellForm.handleSubmit(onSell)} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Units to sell</label>
+            <input type="number" step="1" max={totalUnits} {...sellForm.register("units", { required: true, min: 1, max: totalUnits })} className="w-full bg-surface border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
+            <p className="text-xs text-muted mt-1">Open units available: {formatNumber(totalUnits, 0)}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Sell price (Rs)</label>
+            <input type="number" step="0.01" {...sellForm.register("sell_price", { required: true, min: 0.01 })} className="w-full bg-surface border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Sell date</label>
+            <input type="date" {...sellForm.register("sell_date", { required: true })} className="w-full bg-surface border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Commission (Rs)</label>
+            <input type="number" step="0.01" {...sellForm.register("sell_commission")} className="w-full bg-surface border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Notes (optional)</label>
+            <textarea {...sellForm.register("notes")} rows={2} className="w-full bg-surface border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand resize-none" />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => setShowSell(false)} className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 bg-gradient-profit hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold transition-all">Sell Shares</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

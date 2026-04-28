@@ -9,7 +9,7 @@ from ....models.market_data import StockPriceCache
 from ....services.market_data_sync import ensure_stock_data
 from ....schemas.stock import (
     StockInvestmentCreate, StockInvestmentUpdate, StockInvestmentResponse,
-    CloseStockRequest, StockPriceResponse
+    CloseStockRequest, PartialSellStockRequest, StockPriceResponse
 )
 
 router = APIRouter()
@@ -110,6 +110,91 @@ def close_stock(
     db.commit()
     db.refresh(inv)
     return enrich_stock(inv, db)
+
+
+@router.post("/{investment_id}/sell")
+def partial_sell_stock(
+    investment_id: int,
+    data: PartialSellStockRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    anchor = db.query(StockInvestment).filter(
+        StockInvestment.id == investment_id,
+        StockInvestment.user_id == user.id,
+    ).first()
+    if not anchor:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    if data.units <= 0:
+        raise HTTPException(status_code=400, detail="Units must be greater than 0")
+
+    open_trades = (
+        db.query(StockInvestment)
+        .filter(
+            StockInvestment.user_id == user.id,
+            StockInvestment.symbol == anchor.symbol,
+            StockInvestment.is_closed == False,
+        )
+        .order_by(StockInvestment.buy_date.asc(), StockInvestment.id.asc())
+        .all()
+    )
+    total_open_units = sum(trade.units for trade in open_trades)
+    if data.units > total_open_units:
+        raise HTTPException(status_code=400, detail="Not enough open units to sell")
+
+    units_left = data.units
+    affected = 0
+
+    for trade in open_trades:
+        if units_left <= 0:
+            break
+
+        sell_units = min(trade.units, units_left)
+        allocated_sell_commission = data.sell_commission * (sell_units / data.units)
+
+        if sell_units == trade.units:
+            trade.is_closed = True
+            trade.sell_price = data.sell_price
+            trade.sell_date = data.sell_date
+            trade.sell_commission = allocated_sell_commission
+            if data.notes:
+                trade.notes = f"{trade.notes}\n{data.notes}".strip() if trade.notes else data.notes
+        else:
+            original_units = trade.units
+            original_buy_commission = trade.broker_commission or 0.0
+            remaining_units = original_units - sell_units
+            sold_buy_commission = original_buy_commission * (sell_units / original_units)
+            remaining_buy_commission = original_buy_commission - sold_buy_commission
+
+            trade.units = remaining_units
+            trade.broker_commission = remaining_buy_commission
+
+            db.add(StockInvestment(
+                user_id=trade.user_id,
+                symbol=trade.symbol,
+                company_name=trade.company_name,
+                sector=trade.sector,
+                units=sell_units,
+                buy_price=trade.buy_price,
+                buy_date=trade.buy_date,
+                broker_commission=sold_buy_commission,
+                notes=data.notes or trade.notes,
+                is_closed=True,
+                sell_price=data.sell_price,
+                sell_date=data.sell_date,
+                sell_commission=allocated_sell_commission,
+            ))
+
+        units_left -= sell_units
+        affected += 1
+
+    db.commit()
+    return {
+        "message": f"Sold {data.units} shares of {anchor.symbol}",
+        "symbol": anchor.symbol,
+        "units_sold": data.units,
+        "trades_affected": affected,
+    }
 
 
 @router.delete("/{investment_id}", status_code=204)

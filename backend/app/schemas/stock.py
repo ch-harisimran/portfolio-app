@@ -28,6 +28,14 @@ class CloseStockRequest(BaseModel):
     sell_commission: float = 0.0
 
 
+class PartialSellStockRequest(BaseModel):
+    units: float
+    sell_price: float
+    sell_date: date
+    sell_commission: float = 0.0
+    notes: Optional[str] = None
+
+
 class StockInvestmentResponse(BaseModel):
     id: int
     symbol: str
