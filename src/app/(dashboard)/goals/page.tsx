@@ -37,7 +37,17 @@ export default function GoalsPage() {
   useEffect(() => { load(); }, [load]);
 
   const onAdd = async (data: AddForm) => {
-    try { await goalsApi.create(data); toast.success("Goal created"); setShowAdd(false); addForm.reset(); load(); }
+    try {
+      await goalsApi.create({
+        ...data,
+        deadline: data.deadline || undefined,
+        description: data.description || undefined,
+      });
+      toast.success("Goal created");
+      setShowAdd(false);
+      addForm.reset({ color: "#3b82f6" });
+      load();
+    }
     catch { toast.error("Failed to create goal"); }
   };
 
