@@ -62,12 +62,32 @@ async def list_stocks(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    await ensure_stock_data(db)
+    try:
+        await ensure_stock_data(db)
+    except Exception:
+        # Keep the portfolio screen usable even if upstream market data refresh fails.
+        pass
     q = db.query(StockInvestment).filter(StockInvestment.user_id == user.id)
     if is_closed is not None:
         q = q.filter(StockInvestment.is_closed == is_closed)
     investments = q.order_by(StockInvestment.buy_date.desc()).all()
     return [enrich_stock(inv, db) for inv in investments]
+
+
+@router.get("/search/psx", response_model=List[StockPriceResponse])
+async def search_psx_stocks(q: str = Query("", min_length=0), db: Session = Depends(get_db)):
+    try:
+        await ensure_stock_data(db)
+    except Exception:
+        pass
+    query = db.query(StockPriceCache)
+    if q:
+        query = query.filter(
+            (StockPriceCache.symbol.ilike(f"%{q}%")) |
+            (StockPriceCache.company_name.ilike(f"%{q}%"))
+        )
+    results = query.order_by(StockPriceCache.symbol).all()
+    return results
 
 
 @router.post("", response_model=StockInvestmentResponse, status_code=201)
@@ -127,7 +147,10 @@ def delete_dividend(dividend_id: int, user: User = Depends(get_current_user), db
 
 @router.get("/{investment_id}", response_model=StockInvestmentResponse)
 async def get_stock(investment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    await ensure_stock_data(db)
+    try:
+        await ensure_stock_data(db)
+    except Exception:
+        pass
     inv = db.query(StockInvestment).filter(
         StockInvestment.id == investment_id, StockInvestment.user_id == user.id
     ).first()
@@ -295,16 +318,3 @@ def delete_stock(investment_id: int, user: User = Depends(get_current_user), db:
         raise HTTPException(status_code=404, detail="Investment not found")
     db.delete(inv)
     db.commit()
-
-
-@router.get("/search/psx", response_model=List[StockPriceResponse])
-async def search_psx_stocks(q: str = Query("", min_length=0), db: Session = Depends(get_db)):
-    await ensure_stock_data(db)
-    query = db.query(StockPriceCache)
-    if q:
-        query = query.filter(
-            (StockPriceCache.symbol.ilike(f"%{q}%")) |
-            (StockPriceCache.company_name.ilike(f"%{q}%"))
-        )
-    results = query.order_by(StockPriceCache.symbol).all()
-    return results

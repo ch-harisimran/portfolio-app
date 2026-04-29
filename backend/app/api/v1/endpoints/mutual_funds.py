@@ -46,7 +46,10 @@ async def list_funds(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    await ensure_fund_data(db)
+    try:
+        await ensure_fund_data(db)
+    except Exception:
+        pass
     q = db.query(MutualFundInvestment).filter(MutualFundInvestment.user_id == user.id)
     if is_closed is not None:
         q = q.filter(MutualFundInvestment.is_closed == is_closed)
@@ -66,7 +69,10 @@ def create_fund(data: MutualFundCreate, user: User = Depends(get_current_user), 
 
 @router.get("/{investment_id}", response_model=MutualFundResponse)
 async def get_fund(investment_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    await ensure_fund_data(db)
+    try:
+        await ensure_fund_data(db)
+    except Exception:
+        pass
     inv = db.query(MutualFundInvestment).filter(
         MutualFundInvestment.id == investment_id, MutualFundInvestment.user_id == user.id
     ).first()
@@ -159,7 +165,10 @@ def set_manual_nav(
 
 @router.get("/search/mufap", response_model=List[MutualFundNAVResponse])
 async def search_funds(q: str = Query("", min_length=0), db: Session = Depends(get_db)):
-    await ensure_fund_data(db)
+    try:
+        await ensure_fund_data(db)
+    except Exception:
+        pass
     query = db.query(MutualFundNAVCache)
     if q:
         query = query.filter(

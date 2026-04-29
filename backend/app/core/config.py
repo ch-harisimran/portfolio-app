@@ -45,7 +45,7 @@ class Settings(BaseSettings):
         return []
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", ".env.local")
 
 
 settings = Settings()
