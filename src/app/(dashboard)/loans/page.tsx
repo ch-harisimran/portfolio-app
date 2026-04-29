@@ -76,11 +76,76 @@ export default function LoansPage() {
     catch { toast.error("Delete failed"); }
   };
 
-  const totalDebt = loans.reduce((a, l) => a + l.principal_amount, 0);
-  const totalRemaining = loans.reduce((a, l) => a + l.remaining_balance, 0);
-  const totalPaid = loans.reduce((a, l) => a + l.total_paid, 0);
+  const completedLoans = loans.filter((loan) => loan.progress_percent >= 100 || loan.remaining_balance <= 0);
+  const activeLoans = loans.filter((loan) => loan.progress_percent < 100 && loan.remaining_balance > 0);
+
+  const totalDebt = activeLoans.reduce((a, l) => a + l.principal_amount, 0);
+  const totalRemaining = activeLoans.reduce((a, l) => a + l.remaining_balance, 0);
+  const totalPaid = activeLoans.reduce((a, l) => a + l.total_paid, 0);
 
   const inputCls = "w-full bg-surface border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand focus:shadow-glow-brand-sm transition-all";
+
+  const renderLoanCard = (l: Loan, isCompleted = false) => (
+    <div
+      key={l.id}
+      className="bg-surface-card border border-surface-border rounded-2xl p-5 hover:border-brand/30 hover:shadow-glow-brand-sm transition-all duration-300 group shadow-card"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
+        <div>
+          <Link
+            href={`/loans/${l.id}`}
+            className="font-semibold text-white hover:text-brand transition-colors flex items-center gap-1"
+          >
+            {l.lender_name}
+            <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Link>
+          {l.description && <p className="text-xs text-muted mt-0.5">{l.description}</p>}
+          {l.interest_rate > 0 && (
+            <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-warning/10 text-warning">
+              {l.interest_rate}% p.a.
+            </span>
+          )}
+        </div>
+        <div className="text-right">
+          <p className={cn("text-2xl font-bold", isCompleted ? "text-profit" : "text-white")}>
+            {isCompleted ? "Paid Off" : formatPKR(l.remaining_balance)}
+          </p>
+          <p className="text-[10px] text-muted font-medium uppercase tracking-wide">{isCompleted ? "completed" : "remaining"}</p>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex justify-between text-xs mb-2">
+          <span className="text-muted font-medium">Repaid {l.progress_percent.toFixed(1)}%</span>
+          <span className="text-gray-400">{formatPKR(l.total_paid)} / {formatPKR(l.principal_amount)}</span>
+        </div>
+        <ProgressBar value={l.total_paid} max={l.principal_amount} color="#10b981" />
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+          <span>Started {l.start_date}</span>
+          {l.due_date && <span className={isCompleted ? "text-profit" : "text-warning"}>{isCompleted ? `Closed ${l.due_date}` : `Due ${l.due_date}`}</span>}
+        </div>
+        <div className="flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          {!isCompleted && (
+            <button
+              onClick={() => { setRepaying(l); repayForm.reset({ date: new Date().toISOString().slice(0, 10) }); }}
+              className="px-3 py-1.5 bg-profit/10 text-profit hover:bg-profit/20 rounded-lg text-xs font-semibold transition-colors"
+            >
+              + Repayment
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(l.id)}
+            className="p-1.5 text-muted hover:text-loss hover:bg-loss/10 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-5 max-w-5xl animate-fade-up">
@@ -102,7 +167,7 @@ export default function LoansPage() {
       <ModuleInsights moduleKey="loans" />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-sm font-semibold text-white">Active Loans</h2>
+        <h2 className="text-sm font-semibold text-white">Loans</h2>
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center justify-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all"
@@ -122,64 +187,34 @@ export default function LoansPage() {
           <p className="text-xs text-muted/60 mt-1">Track your borrowings and repayments here</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {loans.map((l) => (
-            <div
-              key={l.id}
-              className="bg-surface-card border border-surface-border rounded-2xl p-5 hover:border-brand/30 hover:shadow-glow-brand-sm transition-all duration-300 group shadow-card"
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
-                <div>
-                  <Link
-                    href={`/loans/${l.id}`}
-                    className="font-semibold text-white hover:text-brand transition-colors flex items-center gap-1"
-                  >
-                    {l.lender_name}
-                    <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </Link>
-                  {l.description && <p className="text-xs text-muted mt-0.5">{l.description}</p>}
-                  {l.interest_rate > 0 && (
-                    <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-warning/10 text-warning">
-                      {l.interest_rate}% p.a.
-                    </span>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-white">{formatPKR(l.remaining_balance)}</p>
-                  <p className="text-[10px] text-muted font-medium uppercase tracking-wide">remaining</p>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex justify-between text-xs mb-2">
-                  <span className="text-muted font-medium">Repaid {l.progress_percent.toFixed(1)}%</span>
-                  <span className="text-gray-400">{formatPKR(l.total_paid)} / {formatPKR(l.principal_amount)}</span>
-                </div>
-                <ProgressBar value={l.total_paid} max={l.principal_amount} color="#10b981" />
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-                  <span>Started {l.start_date}</span>
-                  {l.due_date && <span className="text-warning">Due {l.due_date}</span>}
-                </div>
-                <div className="flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => { setRepaying(l); repayForm.reset({ date: new Date().toISOString().slice(0, 10) }); }}
-                    className="px-3 py-1.5 bg-profit/10 text-profit hover:bg-profit/20 rounded-lg text-xs font-semibold transition-colors"
-                  >
-                    + Repayment
-                  </button>
-                  <button
-                    onClick={() => onDelete(l.id)}
-                    className="p-1.5 text-muted hover:text-loss hover:bg-loss/10 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+        <div className="space-y-6">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">Active</h3>
+              <span className="text-xs text-muted">{activeLoans.length} loan{activeLoans.length === 1 ? "" : "s"}</span>
             </div>
-          ))}
+            {activeLoans.length === 0 ? (
+              <div className="text-center py-10 text-muted bg-surface-card border border-surface-border rounded-2xl">
+                <p className="text-sm">No active loans</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activeLoans.map((loan) => renderLoanCard(loan))}
+              </div>
+            )}
+          </section>
+
+          {completedLoans.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white">Completed</h3>
+                <span className="text-xs text-profit">{completedLoans.length} completed</span>
+              </div>
+              <div className="space-y-3">
+                {completedLoans.map((loan) => renderLoanCard(loan, true))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 

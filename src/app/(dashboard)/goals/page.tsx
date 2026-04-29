@@ -63,16 +63,85 @@ export default function GoalsPage() {
     catch { toast.error("Delete failed"); }
   };
 
-  const totalTarget = goals.reduce((a, g) => a + g.target_amount, 0);
-  const totalSaved = goals.reduce((a, g) => a + g.total_saved, 0);
+  const completedGoals = goals.filter((goal) => goal.progress_percent >= 100 || goal.remaining_amount <= 0);
+  const activeGoals = goals.filter((goal) => goal.progress_percent < 100 && goal.remaining_amount > 0);
+
+  const totalTarget = activeGoals.reduce((a, g) => a + g.target_amount, 0);
+  const totalSaved = activeGoals.reduce((a, g) => a + g.total_saved, 0);
   const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+
+  const renderGoalCard = (g: Goal, isCompleted = false) => {
+    const daysLeft = g.deadline ? differenceInDays(new Date(g.deadline), new Date()) : null;
+    const isOverdue = !isCompleted && daysLeft !== null && daysLeft < 0;
+    const isUrgent = !isCompleted && daysLeft !== null && daysLeft >= 0 && daysLeft < 30;
+
+    return (
+      <div key={g.id}
+        className="bg-surface-card border border-surface-border rounded-2xl p-5 hover:border-brand/30 hover:shadow-glow-brand-sm transition-all duration-300 group shadow-card relative overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(to right, transparent, ${g.color}60, transparent)` }} />
+
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ background: `${g.color}20`, border: `1px solid ${g.color}30` }}>
+              <Target className="w-5 h-5" style={{ color: g.color }} />
+            </div>
+            <div>
+              <Link href={`/goals/${g.id}`} className="font-semibold text-white hover:text-brand transition-colors text-sm">{g.name}</Link>
+              {g.deadline && (
+                <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: isCompleted ? "#10b981" : isOverdue ? "#ef4444" : isUrgent ? "#f59e0b" : "#6b7280" }}>
+                  <Calendar className="w-3 h-3" />
+                  {format(new Date(g.deadline), "dd MMM yyyy")}
+                  {isCompleted ? <span className="ml-1">Completed</span> : daysLeft !== null && (
+                    <span className="ml-1">{isOverdue ? "Overdue" : `${daysLeft}d left`}</span>
+                  )}
+                </p>
+              )}
+            </div>
+          </div>
+          <button onClick={() => onDelete(g.id)} className="p-1.5 rounded-lg text-muted hover:text-loss hover:bg-loss/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="mb-3">
+          <div className="flex justify-between text-xs mb-2">
+            <span className="text-muted font-medium">Progress</span>
+            <span className="font-bold text-white">{g.progress_percent.toFixed(1)}%</span>
+          </div>
+          <ProgressBar value={g.total_saved} max={g.target_amount} color={g.color} />
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="text-white font-bold text-sm">{formatPKR(g.total_saved)}</span>
+            <span className="text-muted text-xs"> / {formatPKR(g.target_amount)}</span>
+            {g.remaining_amount > 0 ? (
+              <p className="text-xs text-muted/70 mt-0.5">{formatPKR(g.remaining_amount)} remaining</p>
+            ) : (
+              <p className="text-xs text-profit mt-0.5">Goal completed</p>
+            )}
+          </div>
+          {!isCompleted && (
+            <button
+              onClick={() => { setContributing(g); contribForm.reset({ date: new Date().toISOString().slice(0, 10) }); }}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+              style={{ background: `${g.color}15`, color: g.color }}
+            >
+              + Add Funds
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-5 max-w-5xl animate-fade-up">
       {/* Summary strip */}
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-3">
         {[
-          { label: "Active Goals", val: goals.length.toString(), color: "text-white" },
+          { label: "Active Goals", val: activeGoals.length.toString(), color: "text-white" },
           { label: "Total Target", val: formatPKR(totalTarget), color: "text-brand" },
           { label: "Total Saved", val: formatPKR(totalSaved), color: "text-profit", sub: `${overallPct.toFixed(1)}% of target` },
         ].map(({ label, val, color, sub }) => (
@@ -88,7 +157,7 @@ export default function GoalsPage() {
       <ModuleInsights moduleKey="goals" />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-sm font-semibold text-white">Your Goals</h2>
+        <h2 className="text-sm font-semibold text-white">Goals</h2>
         <button onClick={() => setShowAdd(true)}
           className="flex items-center justify-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all">
           <Plus className="w-4 h-4" /> New Goal
@@ -106,67 +175,34 @@ export default function GoalsPage() {
           <p className="text-xs text-muted/60 mt-1">Create your first savings goal to start tracking</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {goals.map((g) => {
-            const daysLeft = g.deadline ? differenceInDays(new Date(g.deadline), new Date()) : null;
-            const isOverdue = daysLeft !== null && daysLeft < 0;
-            const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft < 30;
-            return (
-              <div key={g.id}
-                className="bg-surface-card border border-surface-border rounded-2xl p-5 hover:border-brand/30 hover:shadow-glow-brand-sm transition-all duration-300 group shadow-card relative overflow-hidden"
-              >
-                <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(to right, transparent, ${g.color}60, transparent)` }} />
-
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ background: `${g.color}20`, border: `1px solid ${g.color}30` }}>
-                      <Target className="w-5 h-5" style={{ color: g.color }} />
-                    </div>
-                    <div>
-                      <Link href={`/goals/${g.id}`} className="font-semibold text-white hover:text-brand transition-colors text-sm">{g.name}</Link>
-                      {g.deadline && (
-                        <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: isOverdue ? "#ef4444" : isUrgent ? "#f59e0b" : "#6b7280" }}>
-                          <Calendar className="w-3 h-3" />
-                          {format(new Date(g.deadline), "dd MMM yyyy")}
-                          {daysLeft !== null && (
-                            <span className="ml-1">{isOverdue ? "Overdue" : `${daysLeft}d left`}</span>
-                          )}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <button onClick={() => onDelete(g.id)} className="p-1.5 rounded-lg text-muted hover:text-loss hover:bg-loss/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="mb-3">
-                  <div className="flex justify-between text-xs mb-2">
-                    <span className="text-muted font-medium">Progress</span>
-                    <span className="font-bold text-white">{g.progress_percent.toFixed(1)}%</span>
-                  </div>
-                  <ProgressBar value={g.total_saved} max={g.target_amount} color={g.color} />
-                </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <span className="text-white font-bold text-sm">{formatPKR(g.total_saved)}</span>
-                    <span className="text-muted text-xs"> / {formatPKR(g.target_amount)}</span>
-                    {g.remaining_amount > 0 && (
-                      <p className="text-xs text-muted/70 mt-0.5">{formatPKR(g.remaining_amount)} remaining</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => { setContributing(g); contribForm.reset({ date: new Date().toISOString().slice(0, 10) }); }}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
-                    style={{ background: `${g.color}15`, color: g.color }}
-                  >
-                    + Add Funds
-                  </button>
-                </div>
+        <div className="space-y-6">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">Active</h3>
+              <span className="text-xs text-muted">{activeGoals.length} goal{activeGoals.length === 1 ? "" : "s"}</span>
+            </div>
+            {activeGoals.length === 0 ? (
+              <div className="text-center py-10 text-muted bg-surface-card border border-surface-border rounded-2xl">
+                <p className="text-sm">No active goals</p>
               </div>
-            );
-          })}
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeGoals.map((goal) => renderGoalCard(goal))}
+              </div>
+            )}
+          </section>
+
+          {completedGoals.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white">Completed</h3>
+                <span className="text-xs text-profit">{completedGoals.length} completed</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {completedGoals.map((goal) => renderGoalCard(goal, true))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 

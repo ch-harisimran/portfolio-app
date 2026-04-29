@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "PakFinance — Pakistani Investor Dashboard",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="dark">
       <body className="min-h-screen bg-surface text-gray-100 antialiased">
         {children}
+        <SpeedInsights />
         <Toaster
           position="top-right"
           toastOptions={{
