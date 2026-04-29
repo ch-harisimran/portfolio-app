@@ -40,6 +40,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
     full_name: Optional[str]
+    is_admin: bool = False
     theme: str
     currency: str
     has_pin: bool

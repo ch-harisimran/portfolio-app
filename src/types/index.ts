@@ -2,6 +2,7 @@ export interface User {
   id: number;
   email: string;
   full_name?: string;
+  is_admin: boolean;
   theme: string;
   currency: string;
   has_pin: boolean;
@@ -119,6 +120,7 @@ export interface DashboardSummary {
   total_invested: number;
   stocks_value: number;
   mutual_funds_value: number;
+  bank_holdings_value: number;
   stocks_invested: number;
   mutual_funds_invested: number;
   total_goals_saved: number;
@@ -208,4 +210,31 @@ export interface FundSearchResult {
   fund_type?: string;
   current_nav?: number;
   nav_date?: string;
+}
+
+export interface BankAccount {
+  id: number;
+  bank_name: string;
+  account_title?: string;
+  account_type?: string;
+  account_number_last4?: string;
+  balance: number;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AdminUserSummary {
+  id: number;
+  email: string;
+  full_name?: string;
+  is_active: boolean;
+  is_admin: boolean;
+  created_at?: string;
+  stock_count: number;
+  mutual_fund_count: number;
+  goal_count: number;
+  loan_count: number;
+  expense_income_count: number;
+  bank_account_count: number;
 }

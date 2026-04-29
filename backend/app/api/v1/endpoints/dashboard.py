@@ -9,6 +9,7 @@ from ....models.mutual_fund import MutualFundInvestment
 from ....models.goal import Goal, GoalContribution
 from ....models.loan import Loan, LoanRepayment
 from ....models.market_data import StockPriceCache, MutualFundNAVCache
+from ....models.bank_account import BankAccount
 from ....services.market_data_sync import ensure_fund_data, ensure_stock_data
 from ....schemas.dashboard import (
     DashboardSummary, NetWorthItem, AllocationItem,
@@ -77,7 +78,10 @@ async def get_dashboard(user: User = Depends(get_current_user), db: Session = De
         for l in loans
     )
 
-    total_net_worth = (stocks_current + funds_current + total_goals) - total_loans_remaining
+    bank_accounts = db.query(BankAccount).filter(BankAccount.user_id == user.id).all()
+    bank_holdings = sum(account.balance for account in bank_accounts)
+
+    total_net_worth = (stocks_current + funds_current + total_goals + bank_holdings) - total_loans_remaining
 
     # Build portfolio history (last 30 days approximation)
     history = _build_history(total_invested, total_net_worth)
@@ -87,6 +91,7 @@ async def get_dashboard(user: User = Depends(get_current_user), db: Session = De
         total_invested=round(total_invested, 2),
         stocks_value=round(stocks_current, 2),
         mutual_funds_value=round(funds_current, 2),
+        bank_holdings_value=round(bank_holdings, 2),
         stocks_invested=round(stocks_invested, 2),
         mutual_funds_invested=round(funds_invested, 2),
         total_goals_saved=round(total_goals, 2),
@@ -119,10 +124,12 @@ def get_allocation(user: User = Depends(get_current_user), db: Session = Depends
     active_funds = db.query(MutualFundInvestment).filter(
         MutualFundInvestment.user_id == user.id, MutualFundInvestment.is_closed == False
     ).all()
+    bank_accounts = db.query(BankAccount).filter(BankAccount.user_id == user.id).all()
 
     stocks_val = sum(s.invested_amount for s in active_stocks)
     funds_val = sum(f.invested_amount for f in active_funds)
-    total = stocks_val + funds_val
+    bank_val = sum(account.balance for account in bank_accounts)
+    total = stocks_val + funds_val + bank_val
 
     items = []
     if total > 0:
@@ -132,6 +139,9 @@ def get_allocation(user: User = Depends(get_current_user), db: Session = Depends
         if funds_val > 0:
             items.append(AllocationItem(name="Mutual Funds", value=round(funds_val, 2),
                                         percent=round(funds_val / total * 100, 1), color="#10b981"))
+        if bank_val > 0:
+            items.append(AllocationItem(name="Bank Holdings", value=round(bank_val, 2),
+                                        percent=round(bank_val / total * 100, 1), color="#f59e0b"))
     return items
 
 

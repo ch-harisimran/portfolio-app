@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   TrendingUp, TrendingDown, Landmark, Target, CreditCard,
-  Activity, BarChart3, ArrowUpRight, ArrowDownRight, Wallet2
+  Activity, BarChart3, ArrowUpRight, ArrowDownRight, Wallet2, Building2
 } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import PortfolioChart from "@/components/charts/PortfolioChart";
@@ -99,7 +99,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Asset cards */}
-      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-5 gap-4">
         <StatCard
           label="PSX Stocks"
           value={formatPKR(summary.stocks_value)}
@@ -113,6 +113,12 @@ export default function DashboardPage() {
           sub={`Invested ${formatPKR(summary.mutual_funds_invested)}`}
           icon={Landmark}
           accentColor="profit"
+        />
+        <StatCard
+          label="Bank Holdings"
+          value={formatPKR(summary.bank_holdings_value)}
+          icon={Building2}
+          accentColor="warning"
         />
         <StatCard
           label="Goals Saved"

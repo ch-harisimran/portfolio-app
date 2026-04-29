@@ -14,8 +14,10 @@ const titles: Record<string, string> = {
   "/loans": "Loans",
   "/history": "History",
   "/summary": "Summary",
+  "/bank-accounts": "Bank Accounts",
   "/expenses": "Expenses",
   "/settings": "Settings",
+  "/admin": "Admin Panel",
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

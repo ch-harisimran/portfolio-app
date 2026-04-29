@@ -20,8 +20,11 @@ async def refresh_psx(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    await fetch_psx_data(db)
-    return {"message": "PSX data refreshed"}
+    try:
+        await fetch_psx_data(db)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"PSX refresh failed: {exc}")
+    return {"message": "PSX data refreshed successfully"}
 
 
 @router.post("/refresh/mufap")
@@ -29,8 +32,11 @@ async def refresh_mufap(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    await fetch_mufap_data(db)
-    return {"message": "MUFAP data refreshed"}
+    try:
+        await fetch_mufap_data(db)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"MUFAP refresh failed: {exc}")
+    return {"message": "MUFAP data refreshed successfully"}
 
 
 @router.get("/cron/psx")
@@ -39,8 +45,11 @@ async def refresh_psx_cron(
     db: Session = Depends(get_db),
 ):
     _authorize_cron(authorization)
-    await fetch_psx_data(db)
-    return {"message": "PSX data refreshed"}
+    try:
+        await fetch_psx_data(db)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"PSX refresh failed: {exc}")
+    return {"message": "PSX data refreshed successfully"}
 
 
 @router.get("/cron/mufap")
@@ -49,5 +58,8 @@ async def refresh_mufap_cron(
     db: Session = Depends(get_db),
 ):
     _authorize_cron(authorization)
-    await fetch_mufap_data(db)
-    return {"message": "MUFAP data refreshed"}
+    try:
+        await fetch_mufap_data(db)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"MUFAP refresh failed: {exc}")
+    return {"message": "MUFAP data refreshed successfully"}

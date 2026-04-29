@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .endpoints import auth, stocks, mutual_funds, goals, loans, dashboard, settings, market_data, expenses, reports
+from .endpoints import auth, stocks, mutual_funds, goals, loans, dashboard, settings, market_data, expenses, reports, bank_accounts, admin
 
 api_router = APIRouter()
 
@@ -13,3 +13,5 @@ api_router.include_router(expenses.router, prefix="/expenses", tags=["Expenses"]
 api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])
 api_router.include_router(settings.router, prefix="/settings", tags=["Settings"])
 api_router.include_router(market_data.router, prefix="/market-data", tags=["Market Data"])
+api_router.include_router(bank_accounts.router, prefix="/bank-accounts", tags=["Bank Accounts"])
+api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])

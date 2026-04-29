@@ -17,10 +17,16 @@ export default function Header({ title, onOpenMobileNav }: { title: string; onOp
   const refreshData = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([settingsApi.refreshPSX(), settingsApi.refreshMUFAP()]);
-      toast.success("Market data refreshed");
-    } catch {
-      toast.error("Refresh failed");
+      const results = await Promise.allSettled([settingsApi.refreshPSX(), settingsApi.refreshMUFAP()]);
+      const failed = results.filter((result) => result.status === "rejected");
+      if (!failed.length) {
+        toast.success("PSX and MUFAP data refreshed");
+      } else if (failed.length === 1) {
+        const message = (failed[0] as PromiseRejectedResult).reason?.response?.data?.detail || "One market source failed to refresh";
+        toast.error(message);
+      } else {
+        toast.error("PSX and MUFAP refresh both failed");
+      }
     } finally {
       setRefreshing(false);
     }

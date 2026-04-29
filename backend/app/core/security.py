@@ -12,6 +12,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer()
 
 
+def is_admin_email(email: str | None) -> bool:
+    if not email:
+        return False
+    return email.strip().lower() in settings.admin_emails_list
+
+
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
@@ -67,4 +73,10 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
+    return user
+
+
+def get_current_admin(user=Depends(get_current_user)):
+    if not (getattr(user, "is_admin", False) or is_admin_email(getattr(user, "email", None))):
+        raise HTTPException(status_code=403, detail="Admin access required")
     return user

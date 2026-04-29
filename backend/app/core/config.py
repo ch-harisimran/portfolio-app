@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     WEBAUTHN_RP_ID: str = "localhost"
     WEBAUTHN_RP_NAME: str = "PakFinance"
     WEBAUTHN_ORIGIN: str = "http://localhost:3000"
+    ADMIN_EMAILS: str = "[]"
 
     @property
     def cors_origins_list(self) -> List[str]:
@@ -32,6 +33,16 @@ class Settings(BaseSettings):
         if self.ENVIRONMENT == "production":
             return r"https://.*\.vercel\.app"
         return None
+
+    @property
+    def admin_emails_list(self) -> List[str]:
+        try:
+            raw = json.loads(self.ADMIN_EMAILS)
+            if isinstance(raw, list):
+                return [str(item).strip().lower() for item in raw if str(item).strip()]
+        except Exception:
+            pass
+        return []
 
     class Config:
         env_file = ".env"

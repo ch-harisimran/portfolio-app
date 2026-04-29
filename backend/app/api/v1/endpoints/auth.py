@@ -7,7 +7,7 @@ from ....core.database import get_db
 from ....core.config import settings
 from ....core.security import (
     hash_password, verify_password, hash_pin, verify_pin,
-    create_access_token, create_refresh_token, decode_token, get_current_user
+    create_access_token, create_refresh_token, decode_token, get_current_user, is_admin_email
 )
 from ....models.user import User
 from ....models.auth_device import TrustedDevice, AuthChallenge, WebAuthnCredential, SessionLock
@@ -78,10 +78,12 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
             status_code=400,
             detail="Password must be between 8 and 72 characters",
         )
+    is_first_user = db.query(User.id).first() is None
     user = User(
         email=data.email,
         password_hash=password_hash,
         full_name=data.full_name,
+        is_admin=is_first_user or is_admin_email(data.email),
     )
     db.add(user)
     db.commit()
@@ -463,6 +465,7 @@ def get_me(user: User = Depends(get_current_user)):
         id=user.id,
         email=user.email,
         full_name=user.full_name,
+        is_admin=bool(user.is_admin or is_admin_email(user.email)),
         theme=user.theme,
         currency=user.currency,
         has_pin=bool(user.pin_hash),

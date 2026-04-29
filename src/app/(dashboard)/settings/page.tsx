@@ -74,8 +74,11 @@ export default function SettingsPage() {
     try {
       if (type === "psx") await settingsApi.refreshPSX();
       else await settingsApi.refreshMUFAP();
-      toast.success(`${type.toUpperCase()} data refresh started`);
-    } catch { toast.error("Refresh failed"); }
+      toast.success(`${type.toUpperCase()} data refreshed`);
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail;
+      toast.error(detail || "Refresh failed");
+    }
     finally { setRefreshing(false); }
   };
 

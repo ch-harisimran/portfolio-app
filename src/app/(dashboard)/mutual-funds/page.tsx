@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, Landmark, Pencil, Trash2, ArrowUpRight } from "lucide-react";
-import { fundsApi, settingsApi } from "@/lib/api";
+import { fundsApi } from "@/lib/api";
 import { formatPKR, formatNumber, formatPercent, cn } from "@/lib/utils";
 import type { MutualFundInvestment, FundSearchResult } from "@/types";
 import Modal from "@/components/ui/Modal";
@@ -54,14 +54,6 @@ export default function MutualFundsPage() {
   }, []);
 
   useEffect(() => { loadFundOptions(); }, [loadFundOptions]);
-
-  useEffect(() => {
-    const refresh = async () => {
-      try { await settingsApi.refreshMUFAP(); } catch { /* ignore */ }
-      finally { load(); loadFundOptions(); }
-    };
-    refresh();
-  }, [load, loadFundOptions]);
 
   const onSearch = (q: string) => {
     setSearchQ(q);

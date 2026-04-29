@@ -3,11 +3,12 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard, TrendingUp, Landmark, Target, CreditCard,
-  History, Settings, LogOut, ChevronLeft, ChevronRight, CalendarDays, Wallet, Zap, X
+  History, Settings, LogOut, ChevronLeft, ChevronRight, CalendarDays, Wallet, Zap, X, ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { clearTokens } from "@/lib/auth";
-import { useState } from "react";
+import { clearTokens, getUser } from "@/lib/auth";
+import { useEffect, useState } from "react";
+import type { User as UserType } from "@/types";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const nav = [
 ];
 
 const separateModules = [
+  { href: "/bank-accounts", label: "Bank Accounts", icon: Landmark },
   { href: "/expenses", label: "Expenses", icon: Wallet },
 ];
 
@@ -32,6 +34,11 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState<UserType | null>(null);
+
+  useEffect(() => {
+    setUser(getUser());
+  }, [pathname]);
 
   const logout = () => {
     clearTokens();
@@ -159,6 +166,20 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
           <Settings style={{ width: 17, height: 17 }} className="shrink-0" />
           {!collapsed && "Settings"}
         </Link>
+        {user?.is_admin && (
+          <Link
+            href="/admin"
+            onClick={onCloseMobile}
+            title={collapsed ? "Admin" : undefined}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-surface-elevated hover:text-gray-200 transition-all",
+              collapsed && "justify-center px-2"
+            )}
+          >
+            <ShieldCheck style={{ width: 17, height: 17 }} className="shrink-0" />
+            {!collapsed && "Admin"}
+          </Link>
+        )}
         <button
           onClick={logout}
           title={collapsed ? "Logout" : undefined}

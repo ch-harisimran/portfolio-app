@@ -12,6 +12,7 @@ class DashboardSummary(BaseModel):
     total_invested: float
     stocks_value: float
     mutual_funds_value: float
+    bank_holdings_value: float
     stocks_invested: float
     mutual_funds_invested: float
     total_goals_saved: float
