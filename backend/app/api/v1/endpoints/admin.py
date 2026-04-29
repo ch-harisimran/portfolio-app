@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException
 
 from ....core.database import get_db
-from ....core.security import get_current_admin
+from ....core.security import get_current_admin, is_admin_email
 from ....models.bank_account import BankAccount
 from ....models.expense import IncomeEntry
 from ....models.goal import Goal
@@ -28,7 +28,7 @@ def list_users(admin: User = Depends(get_current_admin), db: Session = Depends(g
                 email=user.email,
                 full_name=user.full_name,
                 is_active=user.is_active,
-                is_admin=bool(user.is_admin),
+                is_admin=bool(user.is_admin or is_admin_email(user.email)),
                 created_at=user.created_at,
                 stock_count=db.query(func.count(StockInvestment.id)).filter(StockInvestment.user_id == user.id).scalar() or 0,
                 mutual_fund_count=db.query(func.count(MutualFundInvestment.id)).filter(MutualFundInvestment.user_id == user.id).scalar() or 0,

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     WEBAUTHN_RP_ID: str = "localhost"
     WEBAUTHN_RP_NAME: str = "PakFinance"
     WEBAUTHN_ORIGIN: str = "http://localhost:3000"
-    ADMIN_EMAILS: str = "[]"
+    ADMIN_EMAILS: str = '["hariis1797@gmail.com"]'
 
     @property
     def cors_origins_list(self) -> List[str]:
