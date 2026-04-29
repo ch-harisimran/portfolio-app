@@ -127,7 +127,7 @@ export default function MutualFundsPage() {
   return (
     <div className="space-y-5 max-w-6xl animate-fade-up">
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-3">
         {[
           { label: "Invested", val: formatPKR(totalInvested), color: "text-white" },
           { label: "Current Value", val: formatPKR(totalCurrent), color: "text-brand" },
@@ -136,7 +136,7 @@ export default function MutualFundsPage() {
           <div key={label} className="bg-surface-card border border-surface-border rounded-2xl p-4 relative overflow-hidden shadow-card">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
             <p className="text-[10px] text-muted uppercase tracking-widest font-semibold mb-1.5">{label}</p>
-            <p className={cn("text-xl font-bold", color)}>{val}</p>
+            <p className={cn("text-lg sm:text-xl font-bold break-words", color)}>{val}</p>
             {sub && <p className="text-xs text-muted mt-0.5">{sub}</p>}
           </div>
         ))}
@@ -145,7 +145,7 @@ export default function MutualFundsPage() {
       <ModuleInsights moduleKey="mutual_funds" />
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-1 bg-surface-card border border-surface-border rounded-xl p-1">
           {(["open", "closed"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
@@ -157,7 +157,7 @@ export default function MutualFundsPage() {
           ))}
         </div>
         <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all">
+          className="flex items-center justify-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all">
           <Plus className="w-4 h-4" /> Add Fund
         </button>
       </div>
@@ -174,7 +174,8 @@ export default function MutualFundsPage() {
         </div>
       ) : (
         <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden shadow-card">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-surface-border bg-surface/50">
                 {["Fund", "Units", "NAV (Buy)", "Invested", tab === "open" ? "Current NAV" : "Redemption NAV", "P&L", "Date", ""].map((h) => (
@@ -210,7 +211,7 @@ export default function MutualFundsPage() {
                     </td>
                     <td className="px-4 py-3.5 text-muted text-xs">{tab === "open" ? f.purchase_date : f.sell_date}</td>
                     <td className="px-4 py-3.5">
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         {tab === "open" && (
                           <button onClick={() => { setClosing(f); closeForm.setValue("sell_date", new Date().toISOString().slice(0, 10)); }}
                             className="px-2.5 py-1 text-xs bg-brand/10 text-brand hover:bg-brand/20 rounded-lg transition-colors font-medium">Redeem</button>
@@ -230,6 +231,7 @@ export default function MutualFundsPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -260,7 +262,7 @@ export default function MutualFundsPage() {
             )}
           </div>
           <input type="hidden" {...addForm.register("fund_name", { required: true })} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Units</label>
               <input type="number" step="0.0001" {...addForm.register("units", { required: true })} className={inputCls} placeholder="0.0000" />
@@ -270,7 +272,7 @@ export default function MutualFundsPage() {
               <input type="number" step="0.0001" {...addForm.register("purchase_nav", { required: true })} className={inputCls} placeholder="0.0000" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Date</label>
               <input type="date" {...addForm.register("purchase_date", { required: true })}
@@ -281,7 +283,7 @@ export default function MutualFundsPage() {
               <input type="number" step="0.01" {...addForm.register("load_percentage")} className={inputCls} placeholder="0.00" />
             </div>
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => { setShowAdd(false); addForm.reset(); }}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-brand hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-brand-sm transition-all">Add Investment</button>
@@ -296,7 +298,7 @@ export default function MutualFundsPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Current NAV (₨)</label>
             <input type="number" step="0.0001" {...manualNavForm.register("current_nav", { required: true, min: 0.0001 })} className={inputCls} />
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => setPricing(null)}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-brand hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-brand-sm transition-all">Save Price</button>
@@ -315,7 +317,7 @@ export default function MutualFundsPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Redemption Date</label>
             <input type="date" {...closeForm.register("sell_date", { required: true })} className={inputCls} />
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => setClosing(null)}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-profit hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-profit transition-all">Redeem</button>

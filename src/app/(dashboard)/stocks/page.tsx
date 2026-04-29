@@ -187,7 +187,7 @@ export default function StocksPage() {
 
   return (
     <div className="space-y-5 max-w-6xl animate-fade-up">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-3">
         {[
           { label: "Invested", val: formatPKR(totalInvested), color: "text-white" },
           { label: "Current Value", val: formatPKR(totalCurrent), color: "text-brand" },
@@ -196,7 +196,7 @@ export default function StocksPage() {
           <div key={label} className="bg-surface-card border border-surface-border rounded-2xl p-4 relative overflow-hidden shadow-card">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
             <p className="text-[10px] text-muted uppercase tracking-widest font-semibold mb-1.5">{label}</p>
-            <p className={cn("text-xl font-bold", color)}>{val}</p>
+            <p className={cn("text-lg sm:text-xl font-bold break-words", color)}>{val}</p>
             {sub && <p className="text-xs text-muted mt-0.5">{sub}</p>}
           </div>
         ))}
@@ -204,7 +204,7 @@ export default function StocksPage() {
 
       <ModuleInsights moduleKey="stocks" />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-1 bg-surface-card border border-surface-border rounded-xl p-1">
           {(["open", "closed"] as const).map((t) => (
             <button
@@ -221,7 +221,7 @@ export default function StocksPage() {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all"
+          className="flex items-center justify-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all"
         >
           <Plus className="w-4 h-4" /> Add Stock
         </button>
@@ -239,7 +239,8 @@ export default function StocksPage() {
         </div>
       ) : (
         <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden shadow-card">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-surface-border bg-surface/50">
                 {["Symbol", "Units", "Avg Buy", "Invested", tab === "open" ? "Current" : "Realized Value", "P&L", "Dividends", "Last Activity", ""].map((h) => (
@@ -289,6 +290,7 @@ export default function StocksPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -326,7 +328,7 @@ export default function StocksPage() {
             )}
           </div>
           <input type="hidden" {...addForm.register("symbol", { required: true })} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Units</label>
               <input type="number" step="1" {...addForm.register("units", { required: true, min: 1 })} className={inputCls} placeholder="100" />
@@ -336,7 +338,7 @@ export default function StocksPage() {
               <input type="number" step="0.01" {...addForm.register("buy_price", { required: true, min: 0.01 })} className={inputCls} placeholder="0.00" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Buy Date</label>
               <input type="date" {...addForm.register("buy_date", { required: true })} defaultValue={new Date().toISOString().slice(0, 10)} className={inputCls} />
@@ -350,7 +352,7 @@ export default function StocksPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Notes (optional)</label>
             <textarea {...addForm.register("notes")} rows={2} className={inputCls + " resize-none"} />
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => { setShowAdd(false); addForm.reset({ broker_commission: 0 }); }} className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-brand hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-brand-sm transition-all">Add Investment</button>
           </div>

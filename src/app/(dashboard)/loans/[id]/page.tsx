@@ -36,8 +36,8 @@ export default function LoanDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
-        <div className="flex items-start justify-between mb-4">
+      <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">{loan.lender_name}</h1>
             {loan.description && <p className="text-muted text-sm">{loan.description}</p>}
@@ -49,13 +49,13 @@ export default function LoanDetailPage() {
           </div>
         </div>
         <ProgressBar value={loan.total_paid} max={loan.principal_amount} color="#10b981" />
-        <div className="flex justify-between text-sm mt-2">
+        <div className="flex flex-col gap-1 sm:flex-row sm:justify-between text-sm mt-2">
           <span className="text-muted">{loan.progress_percent.toFixed(1)}% paid</span>
           <span className="text-muted">{formatPKR(loan.total_paid)} paid of {formatPKR(loan.principal_amount)}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
           { label: "Principal", value: formatPKR(loan.principal_amount) },
           { label: "Total Paid", value: formatPKR(loan.total_paid) },
@@ -74,7 +74,7 @@ export default function LoanDetailPage() {
       </div>
 
       {chartData.length > 0 && (
-        <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
+        <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
           <h2 className="text-base font-semibold text-white mb-4">Repayment History</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
@@ -95,7 +95,7 @@ export default function LoanDetailPage() {
         {loan.repayments.length === 0 ? (
           <p className="text-center py-8 text-muted text-sm">No repayments recorded yet</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[620px] text-sm">
             <thead><tr className="border-b border-surface-border">
               {["Date", "Amount", "Note", ""].map((h) => <th key={h} className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">{h}</th>)}
             </tr></thead>
@@ -106,7 +106,7 @@ export default function LoanDetailPage() {
                   <td className="px-6 py-3 font-semibold text-profit">{formatPKR(r.amount)}</td>
                   <td className="px-6 py-3 text-muted">{r.note || "—"}</td>
                   <td className="px-6 py-3">
-                    <button onClick={() => deleteRepayment(r.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-muted hover:text-loss transition-all">
+                    <button onClick={() => deleteRepayment(r.id)} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-muted hover:text-loss transition-all">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </td>

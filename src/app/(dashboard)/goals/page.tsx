@@ -70,7 +70,7 @@ export default function GoalsPage() {
   return (
     <div className="space-y-5 max-w-5xl animate-fade-up">
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-3">
         {[
           { label: "Active Goals", val: goals.length.toString(), color: "text-white" },
           { label: "Total Target", val: formatPKR(totalTarget), color: "text-brand" },
@@ -79,7 +79,7 @@ export default function GoalsPage() {
           <div key={label} className="bg-surface-card border border-surface-border rounded-2xl p-4 relative overflow-hidden shadow-card">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
             <p className="text-[10px] text-muted uppercase tracking-widest font-semibold mb-1.5">{label}</p>
-            <p className={cn("text-xl font-bold", color)}>{val}</p>
+            <p className={cn("text-lg sm:text-xl font-bold break-words", color)}>{val}</p>
             {sub && <p className="text-xs text-muted mt-0.5">{sub}</p>}
           </div>
         ))}
@@ -87,10 +87,10 @@ export default function GoalsPage() {
 
       <ModuleInsights moduleKey="goals" />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold text-white">Your Goals</h2>
         <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all">
+          className="flex items-center justify-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all">
           <Plus className="w-4 h-4" /> New Goal
         </button>
       </div>
@@ -135,7 +135,7 @@ export default function GoalsPage() {
                       )}
                     </div>
                   </div>
-                  <button onClick={() => onDelete(g.id)} className="p-1.5 rounded-lg text-muted hover:text-loss hover:bg-loss/10 transition-colors opacity-0 group-hover:opacity-100">
+                  <button onClick={() => onDelete(g.id)} className="p-1.5 rounded-lg text-muted hover:text-loss hover:bg-loss/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -148,7 +148,7 @@ export default function GoalsPage() {
                   <ProgressBar value={g.total_saved} max={g.target_amount} color={g.color} />
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <span className="text-white font-bold text-sm">{formatPKR(g.total_saved)}</span>
                     <span className="text-muted text-xs"> / {formatPKR(g.target_amount)}</span>
@@ -178,7 +178,7 @@ export default function GoalsPage() {
             <input {...addForm.register("name", { required: true })} className={inputCls}
               placeholder="e.g. Emergency Fund, Car, Hajj..." />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Target Amount (₨)</label>
               <input type="number" {...addForm.register("target_amount", { required: true })} className={inputCls} placeholder="500000" />
@@ -190,7 +190,7 @@ export default function GoalsPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Color</label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {GOAL_COLORS.map((c) => (
                 <button key={c} type="button" onClick={() => addForm.setValue("color", c)}
                   className={cn("w-7 h-7 rounded-full transition-all", addForm.watch("color") === c ? "ring-2 ring-white ring-offset-2 ring-offset-surface scale-110" : "hover:scale-105")}
@@ -198,7 +198,7 @@ export default function GoalsPage() {
               ))}
             </div>
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => setShowAdd(false)}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-brand hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-brand-sm transition-all">Create Goal</button>
@@ -221,7 +221,7 @@ export default function GoalsPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Note (optional)</label>
             <input {...contribForm.register("note")} className={inputCls} placeholder="Monthly savings..." />
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => setContributing(null)}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-profit hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-profit transition-all">Add Contribution</button>

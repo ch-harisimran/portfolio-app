@@ -85,7 +85,7 @@ export default function LoansPage() {
   return (
     <div className="space-y-5 max-w-5xl animate-fade-up">
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-3">
         {[
           { label: "Total Debt", val: formatPKR(totalDebt), color: "text-white" },
           { label: "Total Paid", val: formatPKR(totalPaid), color: "text-profit" },
@@ -94,18 +94,18 @@ export default function LoansPage() {
           <div key={label} className="bg-surface-card border border-surface-border rounded-2xl p-4 relative overflow-hidden shadow-card">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
             <p className="text-[10px] text-muted uppercase tracking-widest font-semibold mb-1.5">{label}</p>
-            <p className={cn("text-xl font-bold", color)}>{val}</p>
+            <p className={cn("text-lg sm:text-xl font-bold break-words", color)}>{val}</p>
           </div>
         ))}
       </div>
 
       <ModuleInsights moduleKey="loans" />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold text-white">Active Loans</h2>
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all"
+          className="flex items-center justify-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all"
         >
           <Plus className="w-4 h-4" /> Add Loan
         </button>
@@ -128,7 +128,7 @@ export default function LoansPage() {
               key={l.id}
               className="bg-surface-card border border-surface-border rounded-2xl p-5 hover:border-brand/30 hover:shadow-glow-brand-sm transition-all duration-300 group shadow-card"
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
                 <div>
                   <Link
                     href={`/loans/${l.id}`}
@@ -158,12 +158,12 @@ export default function LoansPage() {
                 <ProgressBar value={l.total_paid} max={l.principal_amount} color="#10b981" />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 text-xs text-muted">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                   <span>Started {l.start_date}</span>
                   {l.due_date && <span className="text-warning">Due {l.due_date}</span>}
                 </div>
-                <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => { setRepaying(l); repayForm.reset({ date: new Date().toISOString().slice(0, 10) }); }}
                     className="px-3 py-1.5 bg-profit/10 text-profit hover:bg-profit/20 rounded-lg text-xs font-semibold transition-colors"
@@ -194,7 +194,7 @@ export default function LoansPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Description (optional)</label>
             <input {...addForm.register("description")} className={inputCls} placeholder="What was the loan for..." />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Principal (₨)</label>
               <input type="number" step="0.01" {...addForm.register("principal_amount", { required: true })} className={inputCls} />
@@ -204,7 +204,7 @@ export default function LoansPage() {
               <input type="number" step="0.01" {...addForm.register("interest_rate")} className={inputCls} placeholder="0" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Start Date</label>
               <input type="date" {...addForm.register("start_date", { required: true })}
@@ -215,7 +215,7 @@ export default function LoansPage() {
               <input type="date" {...addForm.register("due_date")} className={inputCls} />
             </div>
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => setShowAdd(false)}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">
               Cancel
@@ -243,7 +243,7 @@ export default function LoansPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Note (optional)</label>
             <input {...repayForm.register("note")} className={inputCls} placeholder="Monthly installment..." />
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => setRepaying(null)}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">
               Cancel

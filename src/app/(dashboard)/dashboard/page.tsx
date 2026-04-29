@@ -59,7 +59,7 @@ export default function DashboardPage() {
     <div className="space-y-5 max-w-7xl animate-fade-up">
 
       {/* Hero — Net Worth */}
-      <div className="relative overflow-hidden rounded-2xl border border-brand/20 bg-gradient-to-br from-brand/10 via-surface-card to-surface-card p-6 shadow-card">
+      <div className="relative overflow-hidden rounded-2xl border border-brand/20 bg-gradient-to-br from-brand/10 via-surface-card to-surface-card p-4 sm:p-6 shadow-card">
         {/* Background rings */}
         <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full border border-brand/10 opacity-50" />
         <div className="absolute -top-6 -right-6 w-36 h-36 rounded-full border border-brand/15 opacity-40" />
@@ -68,7 +68,7 @@ export default function DashboardPage() {
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-brand mb-2">Total Net Worth</p>
-            <p className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
+            <p className="text-3xl sm:text-5xl font-bold text-white tracking-tight break-words">
               {formatPKR(summary.total_net_worth)}
             </p>
             <div className="flex items-center gap-2 mt-3">
@@ -85,7 +85,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:text-right">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 sm:text-right w-full sm:w-auto">
             <div className="bg-surface-elevated/60 rounded-xl px-4 py-2.5">
               <p className="text-[10px] text-muted uppercase tracking-wide font-semibold mb-0.5">Invested</p>
               <p className="text-sm font-bold text-white">{formatPKR(summary.total_invested)}</p>
@@ -99,7 +99,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Asset cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="PSX Stocks"
           value={formatPKR(summary.stocks_value)}

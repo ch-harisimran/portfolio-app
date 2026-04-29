@@ -172,8 +172,8 @@ export default function StockDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
-        <div className="flex items-start justify-between">
+      <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-bold text-white">{stock.symbol}</h1>
@@ -183,7 +183,7 @@ export default function StockDetailPage() {
             </div>
             <p className="text-muted">{stock.company_name} {stock.sector && `· ${stock.sector}`}</p>
           </div>
-          <div className="text-right">
+          <div className="lg:text-right">
             <p className="text-3xl font-bold text-white">
               {stock.current_price ? `Rs ${formatNumber(stock.current_price)}` : "-"}
             </p>
@@ -191,7 +191,7 @@ export default function StockDetailPage() {
               {totalUnrealized >= 0 ? "+" : ""}{formatPKR(totalUnrealized)} ({formatPercent(totalUnrealizedPct)})
             </p>
             {totalUnits > 0 && (
-              <div className="mt-3 flex justify-end gap-2">
+              <div className="mt-3 flex flex-col sm:flex-row lg:justify-end gap-2">
                 <button
                   onClick={() => {
                     dividendForm.reset({
@@ -228,7 +228,7 @@ export default function StockDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
           { label: "Open Units", value: formatNumber(totalUnits, 0) },
           { label: "Avg Buy Price", value: `Rs ${formatNumber(avgBuyPrice)}` },
@@ -256,10 +256,10 @@ export default function StockDetailPage() {
         </div>
       )}
 
-      <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
+      <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
         <h2 className="text-base font-semibold text-white mb-4">Trade History</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-surface-border">
                 {["Trade Date", "Units", "Buy Price", "Invested", "Status", "P&L", "Notes", ""].map((heading) => (
@@ -311,8 +311,8 @@ export default function StockDetailPage() {
         </div>
       </div>
 
-      <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <h2 className="text-base font-semibold text-white">Dividends</h2>
           <button
             onClick={() => {
@@ -334,7 +334,7 @@ export default function StockDetailPage() {
           <p className="text-sm text-muted">No dividends recorded for this stock yet.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[700px] text-sm">
               <thead>
                 <tr className="border-b border-surface-border">
                   {["Date", "Shares", "Per Share", "Gross", "Tax", "Net", "Notes"].map((heading) => (

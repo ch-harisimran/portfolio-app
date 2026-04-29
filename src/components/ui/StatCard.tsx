@@ -47,7 +47,7 @@ export default function StatCard({
 
   return (
     <div className={cn(
-      "relative bg-surface-card border border-surface-border rounded-2xl p-5 overflow-hidden transition-all duration-300 shadow-card",
+      "relative bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-5 overflow-hidden transition-all duration-300 shadow-card min-w-0",
       accent.glow,
       "hover:border-opacity-80 hover:-translate-y-0.5",
       className
@@ -59,16 +59,16 @@ export default function StatCard({
       <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-5 -translate-y-8 translate-x-8 bg-brand blur-2xl" />
 
       <div className="flex items-start justify-between mb-4">
-        <p className="text-[11px] font-semibold text-muted uppercase tracking-widest">{label}</p>
+        <p className="text-[10px] sm:text-[11px] font-semibold text-muted uppercase tracking-widest">{label}</p>
         {Icon && (
-          <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", accent.icon)}>
+          <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0", accent.icon)}>
             <Icon className="w-4.5 h-4.5 text-white" style={{ width: 18, height: 18 }} />
           </div>
         )}
       </div>
 
       <div>
-        <p className="text-2xl font-bold text-white leading-none tracking-tight">{value}</p>
+        <p className="text-lg sm:text-2xl font-bold text-white leading-tight tracking-tight break-words">{value}</p>
         {sub && (
           <p className={cn("text-xs mt-1.5 font-medium", subColor || "text-muted")}>{sub}</p>
         )}

@@ -36,8 +36,8 @@ export default function GoalDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
-        <div className="flex items-start justify-between mb-4">
+      <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">{goal.name}</h1>
             {goal.deadline && <p className="text-muted text-sm">Deadline: {goal.deadline}</p>}
@@ -48,14 +48,14 @@ export default function GoalDetailPage() {
           </div>
         </div>
         <ProgressBar value={goal.total_saved} max={goal.target_amount} color={goal.color} />
-        <div className="flex justify-between text-sm mt-2">
+        <div className="flex flex-col gap-1 sm:flex-row sm:justify-between text-sm mt-2">
           <span className="text-muted">{goal.progress_percent.toFixed(1)}% complete</span>
           <span className="text-muted">{formatPKR(goal.remaining_amount)} remaining</span>
         </div>
       </div>
 
       {chartData.length > 0 && (
-        <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
+        <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
           <h2 className="text-base font-semibold text-white mb-4">Contribution History</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
@@ -80,7 +80,7 @@ export default function GoalDetailPage() {
         {goal.contributions.length === 0 ? (
           <p className="text-center py-8 text-muted text-sm">No contributions yet</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[620px] text-sm">
             <thead><tr className="border-b border-surface-border">
               {["Date", "Amount", "Note", ""].map((h) => <th key={h} className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">{h}</th>)}
             </tr></thead>
@@ -91,7 +91,7 @@ export default function GoalDetailPage() {
                   <td className="px-6 py-3 font-semibold text-white">{formatPKR(c.amount)}</td>
                   <td className="px-6 py-3 text-muted">{c.note || "—"}</td>
                   <td className="px-6 py-3">
-                    <button onClick={() => deleteContrib(c.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-muted hover:text-loss transition-all">
+                    <button onClick={() => deleteContrib(c.id)} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-muted hover:text-loss transition-all">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </td>

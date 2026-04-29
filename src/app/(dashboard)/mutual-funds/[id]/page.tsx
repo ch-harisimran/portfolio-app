@@ -34,8 +34,8 @@ export default function FundDetailPage() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
-        <div className="flex items-start justify-between">
+      <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-xl font-bold text-white mb-1">{fund.fund_name}</h1>
             <p className="text-muted text-sm">{fund.amc_name} · {fund.fund_type}</p>
@@ -51,7 +51,7 @@ export default function FundDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
           { label: "Units", value: formatNumber(fund.units, 4) },
           { label: "Purchase NAV", value: `₨${formatNumber(fund.purchase_nav, 4)}` },
@@ -70,7 +70,7 @@ export default function FundDetailPage() {
       </div>
 
       {chartData.length > 1 && (
-        <div className="bg-surface-card border border-surface-border rounded-2xl p-6">
+        <div className="bg-surface-card border border-surface-border rounded-2xl p-4 sm:p-6">
           <h2 className="text-base font-semibold text-white mb-4">Value History</h2>
           <PortfolioChart data={chartData} height={240} />
         </div>

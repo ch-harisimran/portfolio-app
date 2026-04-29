@@ -3,7 +3,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard, TrendingUp, Landmark, Target, CreditCard,
-  History, Settings, LogOut, ChevronLeft, ChevronRight, CalendarDays, Wallet, Zap
+  History, Settings, LogOut, ChevronLeft, ChevronRight, CalendarDays, Wallet, Zap, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearTokens } from "@/lib/auth";
@@ -23,7 +23,12 @@ const separateModules = [
   { href: "/expenses", label: "Expenses", icon: Wallet },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -36,11 +41,21 @@ export default function Sidebar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className={cn(
-      "flex flex-col h-screen bg-surface-card border-r border-surface-border sticky top-0 transition-all duration-300 shrink-0",
-      "shadow-[1px_0_0_rgba(255,255,255,0.02)]",
-      collapsed ? "w-[68px]" : "w-[220px]"
-    )}>
+    <>
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={onCloseMobile}
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+        />
+      )}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-40 flex flex-col bg-surface-card border-r border-surface-border transition-transform duration-300 shadow-[1px_0_0_rgba(255,255,255,0.02)]",
+        "lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0",
+        mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        collapsed ? "w-[68px]" : "w-[220px]"
+      )}>
       {/* Logo */}
       <div className={cn(
         "flex items-center h-16 border-b border-surface-border gap-3 px-4",
@@ -58,6 +73,14 @@ export default function Sidebar() {
             <p className="text-[10px] text-brand mt-0.5 font-medium tracking-wider">INVESTOR</p>
           </div>
         )}
+        <button
+          type="button"
+          onClick={onCloseMobile}
+          className="ml-auto rounded-lg p-2 text-muted hover:bg-surface-elevated hover:text-white lg:hidden"
+          aria-label="Close navigation"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Nav */}
@@ -68,6 +91,7 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onCloseMobile}
               title={collapsed ? label : undefined}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative group",
@@ -103,6 +127,7 @@ export default function Sidebar() {
               <Link
                 key={href}
                 href={href}
+                onClick={onCloseMobile}
                 title={collapsed ? label : undefined}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 relative group",
@@ -124,6 +149,7 @@ export default function Sidebar() {
       <div className="border-t border-surface-border py-2 px-2 space-y-0.5">
         <Link
           href="/settings"
+          onClick={onCloseMobile}
           title={collapsed ? "Settings" : undefined}
           className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-surface-elevated hover:text-gray-200 transition-all",
@@ -158,6 +184,7 @@ export default function Sidebar() {
           }
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

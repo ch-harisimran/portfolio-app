@@ -34,7 +34,7 @@ export default function HistoryPage() {
   return (
     <div className="space-y-5 max-w-6xl animate-fade-up">
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-3">
         {[
           { label: "Closed Stock Trades", val: stocks.length.toString(), color: "text-white" },
           { label: "Closed Fund Investments", val: funds.length.toString(), color: "text-brand" },
@@ -43,13 +43,13 @@ export default function HistoryPage() {
           <div key={label} className="bg-surface-card border border-surface-border rounded-2xl p-4 relative overflow-hidden shadow-card">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
             <p className="text-[10px] text-muted uppercase tracking-widest font-semibold mb-1.5">{label}</p>
-            <p className={cn("text-xl font-bold", color)}>{val}</p>
+            <p className={cn("text-lg sm:text-xl font-bold break-words", color)}>{val}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-surface-card border border-surface-border rounded-xl p-1 w-fit">
+      <div className="flex flex-wrap gap-1 bg-surface-card border border-surface-border rounded-xl p-1 w-full sm:w-fit">
         {[
           { key: "stocks" as const, label: "Stocks", icon: TrendingUp, count: stocks.length },
           { key: "funds" as const, label: "Funds", icon: Landmark, count: funds.length },
@@ -76,7 +76,8 @@ export default function HistoryPage() {
           </div>
         ) : (
           <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden shadow-card">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="border-b border-surface-border bg-surface/50">
                   {["Symbol", "Units", "Buy Price", "Sell Price", "Invested", "Realized P&L", "Buy Date", "Sell Date", "Duration"].map((h) => (
@@ -113,6 +114,7 @@ export default function HistoryPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )
       ) : (
@@ -123,7 +125,8 @@ export default function HistoryPage() {
           </div>
         ) : (
           <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden shadow-card">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[840px] text-sm">
               <thead>
                 <tr className="border-b border-surface-border bg-surface/50">
                   {["Fund", "Units", "Buy NAV", "Sell NAV", "Invested", "Realized P&L", "Buy Date", "Sell Date"].map((h) => (
@@ -156,6 +159,7 @@ export default function HistoryPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )
       )}

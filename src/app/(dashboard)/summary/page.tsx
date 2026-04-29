@@ -15,7 +15,7 @@ function SummaryTable({ title, rows }: { title: string; rows: PeriodSummaryItem[
         <div className="px-5 py-10 text-sm text-muted text-center">No data yet.</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-surface-border bg-surface/50">
                 {["Period", "PSX Stocks", "Mutual Funds", "Goals Saved", "Loans Repaid", "Total"].map((h) => (
@@ -48,8 +48,12 @@ export default function SummaryPage() {
 
   useEffect(() => {
     const load = async () => {
-      try { const { data } = await dashboardApi.periodSummary(); setData(data); }
-      finally { setLoading(false); }
+      try {
+        const { data } = await dashboardApi.periodSummary();
+        setData(data);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
@@ -66,16 +70,15 @@ export default function SummaryPage() {
 
   return (
     <div className="space-y-5 max-w-7xl animate-fade-up">
-      {/* Page header */}
       <div className="bg-surface-card border border-surface-border rounded-2xl p-5 relative overflow-hidden shadow-card">
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand/40 to-transparent" />
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div className="w-11 h-11 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-glow-brand-sm">
             <CalendarDays className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">Period Summary</h1>
-            <p className="text-xs text-muted mt-0.5">PSX invested, mutual funds, goals saved, and loans repaid — by month and year.</p>
+            <p className="text-xs text-muted mt-0.5">PSX invested, mutual funds, goals saved, and loans repaid by month and year.</p>
           </div>
         </div>
       </div>

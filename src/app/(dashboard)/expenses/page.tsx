@@ -96,7 +96,7 @@ export default function ExpensesPage() {
       <div className="bg-surface-card border border-brand/20 rounded-2xl p-5 relative overflow-hidden shadow-card">
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-brand/50 to-transparent" />
         <div className="absolute -right-12 -top-12 w-48 h-48 bg-brand/5 rounded-full blur-3xl" />
-        <div className="flex items-start justify-between relative">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between relative">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-glow-brand-sm">
               <Wallet className="w-6 h-6 text-white" />
@@ -109,7 +109,7 @@ export default function ExpensesPage() {
           </div>
           <button
             onClick={() => setShowIncomeModal(true)}
-            className="flex items-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all"
+            className="flex items-center justify-center gap-1.5 bg-gradient-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-brand-sm transition-all"
           >
             <Plus className="w-4 h-4" /> Add Income
           </button>
@@ -117,7 +117,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* Quick stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-3">
         {[
           { label: `Month (${monthNow?.period || "—"})`, val: formatPKR(monthNow?.net_savings || 0), icon: monthNow && monthNow.net_savings >= 0 ? TrendingUp : TrendingDown, color: (monthNow?.net_savings || 0) >= 0 ? "text-profit" : "text-loss", sub: `In: ${formatPKR(monthNow?.income_total || 0)}` },
           { label: "Month Expenses", val: formatPKR(monthNow?.expense_total || 0), icon: DollarSign, color: "text-warning", sub: "This month" },
@@ -153,7 +153,7 @@ export default function ExpensesPage() {
               </div>
             ) : incomes.map((income) => (
               <div key={income.id} className="bg-surface-card border border-surface-border rounded-2xl p-4 hover:border-brand/20 transition-all shadow-card group">
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3">
                   <div>
                     <p className="text-white font-semibold text-sm">{income.income_type}</p>
                     <p className="text-xs text-muted">{income.source_name || "General"} · {income.date}</p>
@@ -166,7 +166,7 @@ export default function ExpensesPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 mb-3">
+                <div className="flex flex-col sm:flex-row gap-2 mb-3">
                   <button
                     onClick={() => { setExpenseFor(income); expenseForm.setValue("date", new Date().toISOString().slice(0, 10)); }}
                     className="px-3 py-1.5 text-xs bg-brand/10 text-brand hover:bg-brand/20 rounded-lg transition-colors font-semibold"
@@ -175,7 +175,7 @@ export default function ExpensesPage() {
                   </button>
                   <button
                     onClick={() => deleteIncome(income.id)}
-                    className="px-3 py-1.5 text-xs bg-loss/10 text-loss hover:bg-loss/20 rounded-lg transition-colors font-semibold opacity-0 group-hover:opacity-100"
+                    className="px-3 py-1.5 text-xs bg-loss/10 text-loss hover:bg-loss/20 rounded-lg transition-colors font-semibold opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     Delete
                   </button>
@@ -270,7 +270,7 @@ export default function ExpensesPage() {
       {/* Add Income Modal */}
       <Modal open={showIncomeModal} onClose={() => setShowIncomeModal(false)} title="Add Income">
         <form onSubmit={incomeForm.handleSubmit(onCreateIncome)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Income Type</label>
               <input {...incomeForm.register("income_type", { required: true })} className={inputCls}
@@ -281,7 +281,7 @@ export default function ExpensesPage() {
               <input {...incomeForm.register("source_name")} className={inputCls} placeholder="Company/Client name" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Amount (₨)</label>
               <input type="number" step="0.01" {...incomeForm.register("amount", { required: true, min: 0.01 })} className={inputCls} />
@@ -295,7 +295,7 @@ export default function ExpensesPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Note (optional)</label>
             <input {...incomeForm.register("note")} className={inputCls} />
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => setShowIncomeModal(false)}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-brand hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-brand-sm transition-all">Save Income</button>
@@ -311,7 +311,7 @@ export default function ExpensesPage() {
             <input {...expenseForm.register("category", { required: true })} className={inputCls}
               placeholder="Food, Travel, Bills..." />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Amount (₨)</label>
               <input type="number" step="0.01" {...expenseForm.register("amount", { required: true, min: 0.01 })} className={inputCls} />
@@ -325,7 +325,7 @@ export default function ExpensesPage() {
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Note (optional)</label>
             <input {...expenseForm.register("note")} className={inputCls} />
           </div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
             <button type="button" onClick={() => setExpenseFor(null)}
               className="flex-1 border border-surface-border rounded-xl py-2.5 text-sm text-gray-400 hover:bg-surface-elevated transition-colors">Cancel</button>
             <button type="submit" className="flex-1 bg-gradient-brand hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-semibold shadow-glow-brand-sm transition-all">Save Expense</button>
