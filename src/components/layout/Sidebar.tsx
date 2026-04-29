@@ -6,7 +6,7 @@ import {
   History, Settings, LogOut, ChevronLeft, ChevronRight, CalendarDays, Wallet, Zap, X, ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { clearTokens, getUser } from "@/lib/auth";
+import { clearTokens, getUser, isAdminUser } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import type { User as UserType } from "@/types";
 
@@ -166,7 +166,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
           <Settings style={{ width: 17, height: 17 }} className="shrink-0" />
           {!collapsed && "Settings"}
         </Link>
-        {user?.is_admin && (
+        {isAdminUser(user) && (
           <Link
             href="/admin"
             onClick={onCloseMobile}

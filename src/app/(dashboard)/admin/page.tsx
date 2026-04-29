@@ -5,7 +5,7 @@ import { ShieldAlert, Trash2, Users } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { adminApi } from "@/lib/api";
-import { getUser } from "@/lib/auth";
+import { getUser, isAdminUser } from "@/lib/auth";
 import type { AdminUserSummary } from "@/types";
 
 export default function AdminPage() {
@@ -47,7 +47,7 @@ export default function AdminPage() {
     }
   };
 
-  if (!currentUser?.is_admin) {
+  if (!isAdminUser(currentUser)) {
     return (
       <div className="max-w-3xl bg-surface-card border border-surface-border rounded-2xl p-8 text-center">
         <ShieldAlert className="w-12 h-12 mx-auto text-loss mb-3" />
